@@ -8,6 +8,7 @@ interface Props {
   canvasRef: React.RefObject<HTMLCanvasElement | null>
   zoom: number
   onZoom: (delta: number) => void
+  onZoomFloat: (newZoom: number) => void
   onSelect: (id: string | null) => void
   offsetRef: React.RefObject<{ x: number; y: number }>
   panRef: React.RefObject<{ x: number; y: number }>
@@ -15,7 +16,7 @@ interface Props {
 
 const PAN_SPEED = 8 // px per key frame
 
-export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onSelect, offsetRef, panRef }: Props) {
+export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onZoomFloat, onSelect, offsetRef, panRef }: Props) {
   const dragging = useRef(false)
   const dragStart = useRef({ x: 0, y: 0 })
   const lastMouse = useRef({ x: 0, y: 0 })
@@ -118,7 +119,7 @@ export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onSelect, offs
     [zoom],
   )
 
-  // --- Touch drag ---
+  // --- Touch: pan (1 finger) + pinch-zoom (2 fingers) ---
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -126,17 +127,43 @@ export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onSelect, offs
     let touchStart = { x: 0, y: 0 }
     let lastTouch = { x: 0, y: 0 }
     let touching = false
+    let pinching = false
+    let lastPinchDist = 0
+
+    const dist2 = (a: Touch, b: Touch) =>
+      Math.sqrt((a.clientX - b.clientX) ** 2 + (a.clientY - b.clientY) ** 2)
 
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
+      if (e.touches.length === 2) {
         e.preventDefault()
-        const t = e.touches[0]
+        pinching = true
+        touching = false
+        lastPinchDist = dist2(e.touches[0], e.touches[1])
+      } else if (e.touches.length === 1) {
+        e.preventDefault()
         touching = true
+        pinching = false
+        const t = e.touches[0]
         touchStart = { x: t.clientX, y: t.clientY }
         lastTouch = { x: t.clientX, y: t.clientY }
       }
     }
+
     const onTouchMove = (e: TouchEvent) => {
+      if (pinching && e.touches.length === 2) {
+        e.preventDefault()
+        const newDist = dist2(e.touches[0], e.touches[1])
+        const delta = newDist - lastPinchDist
+        // Scale: every 40px of pinch distance = 1 zoom level
+        if (Math.abs(delta) > 5) {
+          const zoomDelta = delta / 40
+          const currentZoom = zoom
+          const newZoom = Math.max(1, Math.min(8, currentZoom + zoomDelta))
+          onZoomFloat(newZoom)
+          lastPinchDist = newDist
+        }
+        return
+      }
       if (!touching || e.touches.length !== 1) return
       e.preventDefault()
       const t = e.touches[0]
@@ -144,7 +171,12 @@ export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onSelect, offs
       panRef.current.y += t.clientY - lastTouch.y
       lastTouch = { x: t.clientX, y: t.clientY }
     }
+
     const onTouchEnd = (e: TouchEvent) => {
+      if (pinching) {
+        pinching = false
+        return
+      }
       if (!touching) return
       touching = false
       const t = e.changedTouches[0]

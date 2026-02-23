@@ -11,11 +11,12 @@ import { useAutoTick } from './hooks/useAutoTick'
 import { trackFeeling } from './auto-tick/autoTick'
 import { emoEmoji } from './sprites/emotionFx'
 import { actOnPersona } from './api/client'
-import { loadAssets, assets } from './sprites/assetLoader'
+import { loadAssets } from './sprites/assetLoader'
 import { OfficeCanvas } from './ui/OfficeCanvas'
 import { SidePanel } from './ui/SidePanel'
 import { Toolbar } from './ui/Toolbar'
-import { EventLog } from './ui/EventLog'
+import { EventLog, MobileEventToast, MobileEventOverlay } from './ui/EventLog'
+import { BottomSheet } from './ui/BottomSheet'
 import { useMobile } from './hooks/useMobile'
 
 function OnboardingOverlay({ onClose }: { onClose: () => void }) {
@@ -107,6 +108,7 @@ export function App() {
   const worldRef = useRef<WorldState | null>(null)
   const offsetRef = useRef({ x: 0, y: 0 })
   const panRef = useRef({ x: 0, y: 0 })
+  const timeRef = useRef(0)
 
   const [zoom, setZoom] = useState(3)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -116,6 +118,7 @@ export function App() {
   const [busySet, setBusySet] = useState<Set<string>>(new Set())
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [assetsReady, setAssetsReady] = useState(false)
+  const [showMobileLog, setShowMobileLog] = useState(false)
   const [, forceUpdate] = useState(0)
 
   // Load sprite assets on mount
@@ -135,11 +138,13 @@ export function App() {
       const world = worldRef.current
       if (!world) return
 
+      timeRef.current += dt
+
       for (const ch of world.characters.values()) {
         updateCharacter(ch, dt, world.tileMap, world.blockedTiles, world.characters)
       }
 
-      // Camera follow selected character
+      // Camera follow selected character — exponential decay smoothing
       if (selectedId) {
         const ch = world.characters.get(selectedId)
         if (ch) {
@@ -150,9 +155,10 @@ export function App() {
           const targetPanX = mapW / 2 - ch.x * zoom
           const targetPanY = mapH / 2 - ch.y * zoom
 
-          const lerp = Math.min(1, 5 * dt)
-          panRef.current.x += (targetPanX - panRef.current.x) * lerp
-          panRef.current.y += (targetPanY - panRef.current.y) * lerp
+          // Frame-rate independent exponential decay
+          const smoothing = 1 - Math.exp(-4 * dt)
+          panRef.current.x += (targetPanX - panRef.current.x) * smoothing
+          panRef.current.y += (targetPanY - panRef.current.y) * smoothing
         }
       }
     },
@@ -174,6 +180,7 @@ export function App() {
         panRef.current.x,
         panRef.current.y,
         selectedId,
+        timeRef.current,
       )
       offsetRef.current = { x: result.offsetX, y: result.offsetY }
     },
@@ -202,8 +209,9 @@ export function App() {
         if (actor && targetCh) {
           walkToCharacter(actor, targetId, world.tileMap, world.blockedTiles, world.characters)
           actor.bubbleEmoji = '\u{1F4AD}'
-          actor.bubbleText = `Thinking '${targetName}'`
+          actor.bubbleText = `${targetName}`
           actor.bubbleTimer = 999
+          actor.bubbleType = 'think'
 
           const PROXIMITY = 1.5 * 16
           let bailed = false
@@ -239,16 +247,18 @@ export function App() {
           targetCh.frozen = true; frozeTarget = true
 
           actor.bubbleEmoji = ACT_EMOJI[actionName] || '\u{2753}'
-          actor.bubbleText = `${actionName} -> '${targetName}'`
+          actor.bubbleText = `${actionName} -> ${targetName}`
           actor.bubbleTimer = 3
+          actor.bubbleType = 'action'
         }
       } else {
         // User action: freeze target
         if (targetCh) {
           targetCh.frozen = true; frozeTarget = true
           targetCh.bubbleEmoji = ACT_EMOJI[actionName] || '\u{2753}'
-          targetCh.bubbleText = `${actionName} <- '${actorName}'`
+          targetCh.bubbleText = `${actionName} <- ${actorName}`
           targetCh.bubbleTimer = 3
+          targetCh.bubbleType = 'action'
         }
       }
       await new Promise((r) => setTimeout(r, 800))
@@ -287,7 +297,10 @@ export function App() {
         }
 
         // React animation on target
-        if (targetCh) triggerReact(targetCh, emoji, `'${disc}' <- '${actorName}'`)
+        if (targetCh) {
+          triggerReact(targetCh, emoji, `${disc} <- ${actorName}`)
+          targetCh.bubbleType = 'react'
+        }
 
         setGlobalLogs((prev) => [logEntry, ...prev].slice(0, 200))
         setPersonalLogs((prev) => ({
@@ -316,7 +329,16 @@ export function App() {
   })
 
   const handleZoom = useCallback((delta: number) => {
-    setZoom((prev) => Math.max(1, Math.min(8, prev + delta)))
+    setZoom((prev) => Math.max(1, Math.min(8, Math.round(prev) + delta)))
+  }, [])
+
+  const handleZoomFloat = useCallback((newZoom: number) => {
+    setZoom(Math.max(1, Math.min(8, newZoom)))
+  }, [])
+
+  const handleSelectFromDirectory = useCallback((id: string) => {
+    setSelectedId(id)
+    // Camera will follow via the game loop
   }, [])
 
   const selectedPersona = personas.find((p) => p.persona_config_id === selectedId) || null
@@ -343,6 +365,7 @@ export function App() {
             canvasRef={canvasRef}
             zoom={zoom}
             onZoom={handleZoom}
+            onZoomFloat={handleZoomFloat}
             onSelect={setSelectedId}
             offsetRef={offsetRef}
             panRef={panRef}
@@ -352,30 +375,74 @@ export function App() {
               {!assetsReady ? 'loading assets...' : 'loading...'}
             </div>
           )}
+
+          {/* Center play button when auto-tick is off */}
+          {!autoTick.running && assetsReady && !loading && (
+            <button
+              onClick={autoTick.toggle}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: mobile ? 64 : 72,
+                height: mobile ? 64 : 72,
+                borderRadius: '50%',
+                border: `2px solid ${COLORS.accent}`,
+                background: 'rgba(233,69,96,0.15)',
+                color: COLORS.accent,
+                fontSize: mobile ? 28 : 32,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+                backdropFilter: 'blur(4px)',
+                transition: 'transform 0.15s, background 0.15s',
+                paddingLeft: 4,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(233,69,96,0.3)'; e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(233,69,96,0.15)'; e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)' }}
+            >
+              {'\u25B6'}
+            </button>
+          )}
+
+          {/* Mobile event toast */}
+          {mobile && <MobileEventToast logs={globalLogs} />}
+
+          {/* Mobile log icon button */}
+          {mobile && globalLogs.length > 0 && (
+            <button
+              onClick={() => setShowMobileLog(true)}
+              style={{
+                position: 'absolute',
+                bottom: selectedPersona ? 'calc(40dvh + 8px)' : 8,
+                right: 8,
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                border: `1px solid ${COLORS.border}`,
+                background: COLORS.surface,
+                color: COLORS.dim,
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 45,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              }}
+            >
+              {'\u{1F4DC}'}
+            </button>
+          )}
         </div>
 
         {/* Side panel — desktop: right sidebar, mobile: bottom sheet */}
         {mobile ? (
-          selectedPersona && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                maxHeight: '40dvh',
-                background: COLORS.surface,
-                borderTop: `1px solid ${COLORS.border}`,
-                borderRadius: '12px 12px 0 0',
-                overflow: 'auto',
-                zIndex: 50,
-                boxShadow: '0 -4px 24px rgba(0,0,0,0.5)',
-              }}
-            >
-              {/* Drag handle */}
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-                <div style={{ width: 32, height: 4, borderRadius: 2, background: '#ffffff20' }} />
-              </div>
+          selectedPersona ? (
+            <BottomSheet onClose={() => setSelectedId(null)}>
               <SidePanel
                 persona={selectedPersona}
                 personas={personas}
@@ -385,7 +452,20 @@ export function App() {
                 busySet={busySet}
                 compact
               />
-            </div>
+            </BottomSheet>
+          ) : (
+            <BottomSheet onClose={() => {}}>
+              <SidePanel
+                persona={null}
+                personas={personas}
+                logs={[]}
+                onClose={() => {}}
+                onAction={() => {}}
+                onSelectPersona={handleSelectFromDirectory}
+                busySet={busySet}
+                compact
+              />
+            </BottomSheet>
           )
         ) : (
           <div
@@ -404,6 +484,7 @@ export function App() {
               logs={personalLogs[selectedId || ''] || []}
               onClose={() => setSelectedId(null)}
               onAction={(targetId, actionName) => executeAction(targetId, actionName)}
+              onSelectPersona={handleSelectFromDirectory}
               busySet={busySet}
             />
           </div>
@@ -411,6 +492,11 @@ export function App() {
       </div>
 
       {!mobile && <EventLog logs={globalLogs} />}
+
+      {/* Mobile full log overlay */}
+      {mobile && showMobileLog && (
+        <MobileEventOverlay logs={globalLogs} onClose={() => setShowMobileLog(false)} />
+      )}
 
       {showOnboarding && <OnboardingOverlay onClose={() => setShowOnboarding(false)} />}
     </div>

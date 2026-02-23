@@ -46,6 +46,7 @@ export function createCharacter(persona: Persona, col: number, row: number, spri
     bubbleEmoji: '',
     bubbleTimer: 0,
     bubbleText: '',
+    bubbleType: 'action' as const,
   }
 }
 
@@ -69,10 +70,23 @@ export function updateCharacter(
       ch.frame = 0
       ch.wanderTimer -= dt
       if (ch.wanderTimer <= 0) {
-        // Pick random walkable tile and walk there
+        // Pick target tile — biased toward homeZone if set
         const walkable = getWalkableTiles(tileMap, blockedTiles)
         if (walkable.length > 0) {
-          const target = walkable[Math.floor(Math.random() * walkable.length)]
+          let target: { col: number; row: number }
+          if (ch.homeZone && Math.random() < 0.7) {
+            // 70% chance to wander within home zone
+            const inZone = walkable.filter(t => {
+              const dc = t.col - ch.homeZone!.col
+              const dr = t.row - ch.homeZone!.row
+              return Math.sqrt(dc * dc + dr * dr) <= ch.homeZone!.radius
+            })
+            target = inZone.length > 0
+              ? inZone[Math.floor(Math.random() * inZone.length)]
+              : walkable[Math.floor(Math.random() * walkable.length)]
+          } else {
+            target = walkable[Math.floor(Math.random() * walkable.length)]
+          }
           const path = findPath(ch.tileCol, ch.tileRow, target.col, target.row, tileMap, blockedTiles)
           if (path.length > 0) {
             ch.path = path

@@ -10,8 +10,115 @@ const ACLS: Record<string, string> = {
 
 interface Props {
   logs: LogEntry[]
+  compact?: boolean
 }
 
+// Mobile toast: shows last 3 events as floating notifications
+export function MobileEventToast({ logs }: { logs: LogEntry[] }) {
+  const recent = logs.slice(0, 3)
+  if (recent.length === 0) return null
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 8,
+      left: 8,
+      right: 8,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 4,
+      pointerEvents: 'none',
+      zIndex: 40,
+    }}>
+      {recent.map((e, i) => {
+        const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
+        return (
+          <div
+            key={`${e.time}-${i}`}
+            style={{
+              display: 'flex',
+              gap: 6,
+              padding: '4px 10px',
+              background: 'rgba(8,8,13,0.85)',
+              borderRadius: 6,
+              fontSize: 10,
+              opacity: i === 0 ? 0.95 : 0.6 - i * 0.15,
+              alignItems: 'center',
+            }}
+          >
+            <span style={{ fontSize: 12 }}>{e.emoji}</span>
+            <span style={{ fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : COLORS.blue }}>
+              {e.from === 'user-1' ? 'You' : e.from.slice(0, 6)}
+            </span>
+            <span style={{ color: cls, fontWeight: 600 }}>{e.action}</span>
+            <span style={{ color: COLORS.dim }}>{e.emotion}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Mobile full log overlay
+export function MobileEventOverlay({ logs, onClose }: { logs: LogEntry[]; onClose: () => void }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxHeight: '60dvh',
+          background: COLORS.surface,
+          borderRadius: '12px 12px 0 0',
+          overflow: 'auto',
+          padding: '16px 16px 24px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.text }}>
+            Global Log <span style={{ color: COLORS.dim }}>({logs.length})</span>
+          </span>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: COLORS.dim, cursor: 'pointer', fontSize: 14, padding: 2, fontFamily: 'inherit' }}
+          >
+            x
+          </button>
+        </div>
+        {logs.length === 0 ? (
+          <div style={{ color: COLORS.muted, fontSize: 10 }}>no interactions yet</div>
+        ) : (
+          logs.slice(0, 50).map((e, i) => {
+            const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
+            return (
+              <div key={i} style={{ display: 'flex', gap: 6, padding: '4px 0', fontSize: 10, borderBottom: '1px solid #ffffff04' }}>
+                <span style={{ color: COLORS.muted, fontSize: 9, minWidth: 48 }}>{e.time}</span>
+                <span style={{ fontSize: 12, minWidth: 16 }}>{e.emoji}</span>
+                <span style={{ fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : COLORS.blue, minWidth: 40 }}>
+                  {e.from === 'user-1' ? 'You' : e.from.slice(0, 6)}
+                </span>
+                <span style={{ fontWeight: 600, color: cls, minWidth: 55 }}>{e.action}</span>
+                <span style={{ color: COLORS.dim, flex: 1 }}>{e.emotion}</span>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Desktop event log (bottom bar)
 export function EventLog({ logs }: Props) {
   const [expanded, setExpanded] = useState(true)
 

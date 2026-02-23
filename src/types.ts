@@ -6,6 +6,8 @@ export enum TileType {
   WOOD_FLOOR = 3,
   WALL = 4,
   CARPET = 5,
+  SAND = 6,
+  BRIDGE = 7,
 }
 
 export enum Direction {
@@ -78,6 +80,9 @@ export interface Character {
   bubbleEmoji: string
   bubbleTimer: number
   bubbleText: string
+  bubbleType: 'think' | 'action' | 'react'
+  // Zone
+  homeZone?: { col: number; row: number; radius: number }
 }
 
 /** Source rectangle in a tileset image */

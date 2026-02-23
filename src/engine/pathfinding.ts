@@ -10,6 +10,7 @@ export function isWalkable(
   if (row < 0 || row >= rows || col < 0 || col >= cols) return false
   const t = tileMap[row][col]
   if (t === TileType.VOID || t === TileType.WALL) return false
+  // SAND and BRIDGE are walkable (handled by default fall-through)
   if (blockedTiles.has(`${col},${row}`)) return false
   return true
 }

@@ -31,6 +31,7 @@ interface Props {
   logs: LogEntry[]
   onClose: () => void
   onAction: (targetId: string, actionName: string) => void
+  onSelectPersona?: (id: string) => void
   busySet: Set<string>
   compact?: boolean
 }
@@ -91,10 +92,65 @@ function describePersonality(p: { O: number; C: number; E: number; A: number; N:
 
 type CompactTab = 'actions' | 'feelings' | 'log'
 
-export function SidePanel({ persona, personas, logs, onClose, onAction, busySet, compact }: Props) {
+// Character directory — shown when no persona is selected
+function CharacterDirectory({ personas, onSelect, compact }: { personas: Persona[]; onSelect: (id: string) => void; compact?: boolean }) {
+  return (
+    <div style={{ padding: compact ? '8px 16px' : 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600, marginBottom: 4 }}>
+        characters ({personas.length})
+      </div>
+      {personas.map((p) => {
+        const name = p.display_name || p.config.identity.name
+        const emotion = p.state?.emotion?.discrete?.primary
+        const emoji = emotion ? emoEmoji(emotion) : '\u{1F610}'
+        const tags = describePersonality(p.config.personality)
+        const vad = p.state?.emotion?.vad
+        const valColor = vad ? vColor(vad.V) : COLORS.dim
+
+        return (
+          <button
+            key={p.persona_config_id}
+            onClick={() => onSelect(p.persona_config_id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '6px 10px',
+              background: COLORS.card,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textAlign: 'left',
+              width: '100%',
+            }}
+          >
+            <span style={{ fontSize: 16 }}>{emoji}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.text }}>{name}</div>
+              <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
+                {tags.slice(0, 3).map(tag => (
+                  <span key={tag} style={{ fontSize: 8, padding: '1px 4px', background: '#ffffff08', borderRadius: 3, color: COLORS.dim }}>{tag}</span>
+                ))}
+              </div>
+            </div>
+            {emotion && (
+              <span style={{ fontSize: 10, color: valColor, fontWeight: 500, flexShrink: 0 }}>{emotion}</span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export function SidePanel({ persona, personas, logs, onClose, onAction, onSelectPersona, busySet, compact }: Props) {
   const [tab, setTab] = useState<CompactTab>('actions')
 
   if (!persona) {
+    if (onSelectPersona) {
+      return <CharacterDirectory personas={personas} onSelect={onSelectPersona} compact={compact} />
+    }
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.muted, fontSize: 12 }}>
         click a character to inspect
@@ -152,7 +208,11 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, busySet,
   )
 
   const actionsBlock = (
-    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(60px, 1fr))',
+      gap: compact ? 4 : 3,
+    }}>
       {ACTIONS.map((a) => {
         const busy = busySet.has(pid + a.name)
         const hoverColor = a.cls === 'p' ? COLORS.pos : a.cls === 'n' ? COLORS.neg : COLORS.warn
@@ -162,12 +222,12 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, busySet,
             onClick={() => onAction(pid, a.name)}
             disabled={busy}
             style={{
-              padding: '3px 5px',
+              padding: compact ? '8px 12px' : '3px 5px',
               border: `1px solid ${COLORS.border}`,
               borderRadius: 5,
               background: 'transparent',
               color: busy ? COLORS.muted : COLORS.dim,
-              fontSize: 8,
+              fontSize: compact ? 11 : 8,
               cursor: busy ? 'default' : 'pointer',
               fontFamily: 'inherit',
               opacity: busy ? 0.3 : 1,

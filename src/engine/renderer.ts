@@ -25,6 +25,25 @@ const TILE_COORDS: Partial<Record<TileType, { tileset: string; sx: number; sy: n
   [TileType.CARPET]: { tileset: 'TilesetInteriorFloor', sx: 208, sy: 112 },    // green tatami
   [TileType.WALL]: { tileset: 'TilesetWallSimple', sx: 16, sy: 160 },          // brown wall (fully opaque)
   [TileType.VOID]: { tileset: 'TilesetWater', sx: 16, sy: 16 },               // uniform blue water
+  [TileType.SAND]: { tileset: 'TilesetFloor', sx: 16, sy: 16 },               // sand/dirt terrain
+  [TileType.BRIDGE]: { tileset: 'TilesetWater', sx: 16, sy: 224 },            // wooden bridge planks
+}
+
+// Zone label definitions for the 48x36 map
+const ZONE_LABELS = [
+  { text: 'Cafe', col: 7, row: 1 },
+  { text: 'Library', col: 39, row: 1 },
+  { text: 'Town Square', col: 21, row: 15 },
+  { text: 'Park', col: 40, row: 14 },
+  { text: 'Training Ground', col: 8, row: 26 },
+  { text: 'Residential', col: 26, row: 26 },
+]
+
+// Bubble type → visual style
+const BUBBLE_STYLES: Record<string, { bg: string; border: string; textColor: string }> = {
+  think:  { bg: 'rgba(40,40,80,0.85)',  border: 'rgba(100,100,255,0.3)', textColor: '#aac' },
+  action: { bg: 'rgba(20,20,40,0.88)',  border: 'rgba(255,200,50,0.3)',  textColor: '#fff' },
+  react:  { bg: 'rgba(40,20,30,0.88)',  border: 'rgba(255,100,100,0.3)', textColor: '#fdd' },
 }
 
 // Shared offscreen canvas for emotion tint compositing
@@ -60,9 +79,38 @@ function renderTileGrid(
       } else if (tile === TileType.WALL) {
         ctx.fillStyle = '#3a3a4e'
         ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s)
+      } else if (tile === TileType.SAND) {
+        ctx.fillStyle = '#c4a96a'
+        ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s)
+      } else if (tile === TileType.BRIDGE) {
+        ctx.fillStyle = '#8a6540'
+        ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s)
       }
     }
   }
+}
+
+// Render zone labels as semi-transparent text on the tile layer
+function renderZoneLabels(
+  ctx: CanvasRenderingContext2D,
+  offsetX: number, offsetY: number,
+  zoom: number,
+): void {
+  const fontSize = Math.max(6, Math.round(4 * zoom))
+  ctx.save()
+  ctx.font = `bold ${fontSize}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.globalAlpha = 0.12
+  ctx.fillStyle = '#fff'
+
+  for (const label of ZONE_LABELS) {
+    const x = offsetX + label.col * TILE_SIZE * zoom + (TILE_SIZE * zoom) / 2
+    const y = offsetY + label.row * TILE_SIZE * zoom + (TILE_SIZE * zoom) / 2
+    ctx.fillText(label.text, x, y)
+  }
+
+  ctx.restore()
 }
 
 // Draw a character sprite with optional emotion tint overlay
@@ -110,6 +158,7 @@ function renderScene(
   offsetX: number, offsetY: number,
   zoom: number,
   selectedId: string | null,
+  time: number,
 ): void {
   const drawables: ZDrawable[] = []
 
@@ -155,6 +204,21 @@ function renderScene(
         // Character sprite with optional emotion tint
         const tint = ch.persona.state?.emotion?.vad ? getEmotionTint(ch.persona.state.emotion.vad) : null
         drawCharacterSprite(c, sheet, col, row, drawX, drawY, zoom, tint)
+
+        // Frozen / busy indicator — pulsing circle
+        if (ch.frozen) {
+          const pulse = 0.5 + 0.5 * Math.sin(time * 6)
+          const radius = (FRAME_W * zoom) / 2 + 2 * zoom
+          const cx = drawX + dw / 2
+          const cy = drawY + dh / 2
+          c.save()
+          c.strokeStyle = `rgba(255, 200, 50, ${0.3 + 0.4 * pulse})`
+          c.lineWidth = Math.max(1, zoom * 0.5)
+          c.beginPath()
+          c.arc(cx, cy, radius, 0, Math.PI * 2)
+          c.stroke()
+          c.restore()
+        }
 
         // Selection highlight
         if (ch.id === selectedId) {
@@ -291,7 +355,7 @@ function emoEmojiForHUD(primary: string): string {
 }
 
 
-// Render speech bubbles — compact, auto-sized
+// Render speech bubbles — styled by bubbleType
 function renderBubbles(
   ctx: CanvasRenderingContext2D,
   characters: Character[],
@@ -310,6 +374,8 @@ function renderBubbles(
     const cx = offsetX + ch.x * zoom
     const cy = offsetY + ch.y * zoom - BUBBLE_VERTICAL_OFFSET_PX * zoom
 
+    const style = BUBBLE_STYLES[ch.bubbleType] || BUBBLE_STYLES.action
+
     ctx.save()
     ctx.globalAlpha = Math.min(1, ch.bubbleTimer)
 
@@ -323,18 +389,18 @@ function renderBubbles(
     const by = cy - bubbleH - tailH
 
     // Background
-    ctx.fillStyle = 'rgba(20,20,40,0.88)'
+    ctx.fillStyle = style.bg
     ctx.beginPath()
     ctx.roundRect(bx, by, bubbleW, bubbleH, radius)
     ctx.fill()
 
     // Border
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)'
+    ctx.strokeStyle = style.border
     ctx.lineWidth = 1
     ctx.stroke()
 
     // Tail
-    ctx.fillStyle = 'rgba(20,20,40,0.88)'
+    ctx.fillStyle = style.bg
     ctx.beginPath()
     ctx.moveTo(cx - 2 * zoom, by + bubbleH)
     ctx.lineTo(cx, by + bubbleH + tailH)
@@ -342,7 +408,7 @@ function renderBubbles(
     ctx.fill()
 
     // Text
-    ctx.fillStyle = '#fff'
+    ctx.fillStyle = style.textColor
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(text, cx, by + bubbleH / 2)
@@ -363,6 +429,7 @@ export function renderFrame(
   panX: number,
   panY: number,
   selectedId: string | null,
+  time = 0,
 ): { offsetX: number; offsetY: number } {
   ctx.imageSmoothingEnabled = false
   ctx.clearRect(0, 0, canvasWidth, canvasHeight)
@@ -375,7 +442,8 @@ export function renderFrame(
   const offsetY = Math.floor((canvasHeight - mapH) / 2) + Math.round(panY)
 
   renderTileGrid(ctx, tileMap, offsetX, offsetY, zoom)
-  renderScene(ctx, furniture, characters, offsetX, offsetY, zoom, selectedId)
+  renderZoneLabels(ctx, offsetX, offsetY, zoom)
+  renderScene(ctx, furniture, characters, offsetX, offsetY, zoom, selectedId, time)
   renderCharacterHUD(ctx, characters, offsetX, offsetY, zoom)
   renderBubbles(ctx, characters, offsetX, offsetY, zoom)
 

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@molroo-ai/world-sdk": "file:../../sdk/world",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

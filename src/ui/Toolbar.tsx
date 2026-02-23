@@ -12,6 +12,33 @@ interface Props {
   mobile?: boolean
 }
 
+function MiniButton({ label, onClick, style }: { label: string; onClick: () => void; style?: React.CSSProperties }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 24,
+        height: 24,
+        borderRadius: 5,
+        border: `1px solid ${COLORS.border}`,
+        background: 'transparent',
+        color: COLORS.dim,
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+        ...style,
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
 export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, totalActions, zoom, onZoomChange, mobile }: Props) {
   const [showInfo, setShowInfo] = useState(false)
 
@@ -22,7 +49,7 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
         background: COLORS.surface,
         borderBottom: `1px solid ${COLORS.border}`,
         display: 'flex',
-        gap: mobile ? 8 : 16,
+        gap: mobile ? 6 : 16,
         alignItems: 'center',
         flexWrap: 'wrap',
         position: 'relative',
@@ -52,7 +79,14 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
           {autoRunning ? '\u23F8' : '\u25B6'}{mobile ? '' : (autoRunning ? ' Auto' : ' Auto')}
         </button>
 
-        {!mobile && (
+        {mobile ? (
+          /* Mobile: compact speed +/- */
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <MiniButton label="-" onClick={() => onSpeedChange(Math.max(1, autoSpeed - 1))} />
+            <span style={{ fontSize: 9, color: COLORS.dim, minWidth: 16, textAlign: 'center' }}>{autoSpeed}</span>
+            <MiniButton label="+" onClick={() => onSpeedChange(Math.min(10, autoSpeed + 1))} />
+          </div>
+        ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <label style={{ fontSize: 9, color: COLORS.muted }}>pace</label>
             <input
@@ -68,19 +102,26 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
         )}
       </div>
 
-      {/* Zoom — hide on mobile */}
-      {!mobile && (
+      {/* Zoom */}
+      {mobile ? (
+        /* Mobile: compact zoom +/- */
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, borderLeft: `1px solid ${COLORS.border}`, paddingLeft: 8 }}>
+          <MiniButton label="-" onClick={() => onZoomChange(Math.max(1, Math.floor(zoom) - 1))} />
+          <span style={{ fontSize: 9, color: COLORS.dim, minWidth: 20, textAlign: 'center' }}>{Math.round(zoom)}x</span>
+          <MiniButton label="+" onClick={() => onZoomChange(Math.min(8, Math.ceil(zoom) + 1))} />
+        </div>
+      ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderLeft: `1px solid ${COLORS.border}`, paddingLeft: 16 }}>
           <label style={{ fontSize: 9, color: COLORS.muted }}>zoom</label>
           <input
             type="range"
             min={1}
             max={8}
-            value={zoom}
+            value={Math.round(zoom)}
             onChange={(e) => onZoomChange(parseInt(e.target.value))}
             style={{ width: 60, accentColor: COLORS.accent }}
           />
-          <span style={{ fontSize: 9, color: COLORS.dim, minWidth: 20 }}>{zoom}x</span>
+          <span style={{ fontSize: 9, color: COLORS.dim, minWidth: 20 }}>{Math.round(zoom)}x</span>
         </div>
       )}
 
