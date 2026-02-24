@@ -1,17 +1,12 @@
 import { useState, useEffect } from 'react'
 import type { Persona } from '../types'
 import { fetchPersonas } from '../api/client'
+import { PERSONAS } from '../data/personas'
 
-const MOCK_PERSONAS: Persona[] = [
-  'Alice', 'Bob', 'Clara', 'David', 'Eve', 'Frank',
-  'Grace', 'Henry', 'Iris', 'Jack', 'Kate', 'Leo',
-].map((name, i) => ({
-  persona_config_id: `mock-${i}`,
-  display_name: name,
-  config: {
-    identity: { name, role: 'villager' },
-    personality: { O: 0.5, C: 0.5, E: 0.5, A: 0.5, N: 0.5, H: 0.5 },
-  },
+const MOCK_PERSONAS: Persona[] = PERSONAS.map((p) => ({
+  persona_config_id: p.persona_config_id,
+  display_name: p.display_name,
+  config: p.config,
   state: {},
 }))
 

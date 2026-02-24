@@ -35,9 +35,12 @@ export function useAutoTick({ personas, onTick }: UseAutoTickOpts) {
 
     const actor = pickActor(available)
 
-    // Exclude busy targets from target selection
+    // Exclude busy targets AND busy actors (prevents chase-cycles / deadlock)
     const targetCandidates = personas.filter(
-      (p) => p.persona_config_id !== actor.persona_config_id && !busyTargets.current.has(p.persona_config_id),
+      (p) =>
+        p.persona_config_id !== actor.persona_config_id &&
+        !busyTargets.current.has(p.persona_config_id) &&
+        !busyActors.current.has(p.persona_config_id),
     )
     if (targetCandidates.length === 0) {
       timerRef.current = setTimeout(tick, getInterval())

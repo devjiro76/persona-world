@@ -257,8 +257,7 @@ export const FURNITURE: FurnitureInstance[] = [
   place(SPRITES.TREE, 28, 0, 2, 3),
   place(SPRITES.TREE, 31, 1, 2, 3),
 
-  // Dark trees near library
-  place(SPRITES.TREE_DARK, 34, 0, 2, 3),
+  // Dark tree near library (removed (34,0) — it isolated tiles north of library)
   place(SPRITES.TREE_DARK, 44, 1, 2, 3),
 
   // Trees south of main road

@@ -5,8 +5,8 @@ export const IDLE_FRAME_DURATION_SEC = 0.5
 export const MAX_DELTA_TIME_SEC = 0.1
 
 // Wander timers
-export const WANDER_PAUSE_MIN_SEC = 2
-export const WANDER_PAUSE_MAX_SEC = 20
+export const WANDER_PAUSE_MIN_SEC = 1
+export const WANDER_PAUSE_MAX_SEC = 6
 export const REACT_DURATION_SEC = 1.5
 
 // Speech bubble

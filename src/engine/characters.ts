@@ -164,8 +164,13 @@ export function updateCharacter(
     case CharacterState.REACT: {
       ch.reactTimer -= dt
       if (ch.reactTimer <= 0) {
-        ch.state = CharacterState.IDLE
-        ch.wanderTimer = randomRange(WANDER_PAUSE_MIN_SEC, WANDER_PAUSE_MAX_SEC)
+        // Scatter away from interaction point to prevent clumping
+        scatterToHome(ch, tileMap, blockedTiles)
+        // scatterToHome sets WALK if path found; otherwise fall back to IDLE
+        if ((ch.state as CharacterState) !== CharacterState.WALK) {
+          ch.state = CharacterState.IDLE
+          ch.wanderTimer = randomRange(WANDER_PAUSE_MIN_SEC, WANDER_PAUSE_MAX_SEC)
+        }
         ch.frame = 0
         ch.frameTimer = 0
       }
@@ -243,6 +248,36 @@ export function finishInteract(ch: Character): void {
   ch.wanderTimer = randomRange(WANDER_PAUSE_MIN_SEC, WANDER_PAUSE_MAX_SEC)
   ch.frame = 0
   ch.frameTimer = 0
+}
+
+/**
+ * After react/interact, scatter the character to a random spot in their
+ * home zone so they don't clump at the interaction point.
+ */
+export function scatterToHome(
+  ch: Character,
+  tileMap: TileType[][],
+  blockedTiles: Set<string>,
+): void {
+  if (!ch.homeZone) return
+  const walkable = getWalkableTiles(tileMap, blockedTiles)
+  const inZone = walkable.filter(t => {
+    const dc = t.col - ch.homeZone!.col
+    const dr = t.row - ch.homeZone!.row
+    return Math.sqrt(dc * dc + dr * dr) <= ch.homeZone!.radius
+  })
+  if (inZone.length === 0) return
+
+  const target = inZone[Math.floor(Math.random() * inZone.length)]
+  const path = findPath(ch.tileCol, ch.tileRow, target.col, target.row, tileMap, blockedTiles)
+  if (path.length > 0) {
+    ch.path = path
+    ch.moveProgress = 0
+    ch.state = CharacterState.WALK
+    ch.interactTarget = null
+    ch.frame = 0
+    ch.frameTimer = 0
+  }
 }
 
 function getSpeedFromArousal(arousal: number): number {
