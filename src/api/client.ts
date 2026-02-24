@@ -1,9 +1,10 @@
 import { World } from '@molroo-ai/world-sdk'
+import type { AppraisalVector } from '@molroo-ai/world-sdk'
 import type { Persona } from '../types'
 
 const VID = import.meta.env.PROD
-  ? 'a0393412-751c-4e95-a4ea-879a7a0b1299'
-  : '80cd2060-e194-4261-a2d5-d2d88162fc3c'
+  ? '4a618dba-b9e7-4848-a0d7-9d88000b3999'
+  : '6b4ef66c-3140-4e02-bc90-56dfe1903815'
 
 const world = new World({
   apiKey: import.meta.env.VITE_API_KEY ?? 'dev-test-key',
@@ -44,13 +45,21 @@ export async function actOnPersona(
   actionName: string,
   actorId: string,
   actorType: 'user' | 'persona',
+  appraisal?: AppraisalVector,
 ): Promise<ActResult | null> {
-  const village = await villagePromise
-  const result = await village.interact({
-    target: targetId,
-    action: actionName,
-    actor: actorId,
-    actorType,
-  })
-  return (result as unknown as ActResult) ?? null
+  try {
+    const village = await villagePromise
+    const result = await village.interact({
+      target: targetId,
+      action: actionName,
+      actionLabel: actionName,
+      appraisal,
+      actor: actorId,
+      actorType,
+    })
+    return (result as unknown as ActResult) ?? null
+  } catch (err) {
+    console.warn(`[interact] ${actionName} on ${targetId} failed:`, err)
+    return null
+  }
 }

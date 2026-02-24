@@ -11,6 +11,7 @@ import { useAutoTick } from './hooks/useAutoTick'
 import { trackFeeling } from './auto-tick/autoTick'
 import { emoEmoji } from './sprites/emotionFx'
 import { actOnPersona } from './api/client'
+import { ACTIONS_BY_NAME } from './data/actions'
 import { loadAssets } from './sprites/assetLoader'
 import { OfficeCanvas } from './ui/OfficeCanvas'
 import { SidePanel } from './ui/SidePanel'
@@ -214,11 +215,15 @@ export function App() {
           actor.bubbleType = 'think'
 
           const PROXIMITY = 1.5 * 16
+          const MAX_CHASE_MS = 10_000
           let bailed = false
           await new Promise<void>((resolve) => {
+            const t0 = Date.now()
             const check = () => {
               // actor got frozen externally — bail
               if (actor.frozen) { bailed = true; resolve(); return }
+              // chase timeout — prevent infinite pursuit
+              if (Date.now() - t0 > MAX_CHASE_MS) { bailed = true; resolve(); return }
               const dx = actor.x - targetCh.x
               const dy = actor.y - targetCh.y
               const dist = Math.sqrt(dx * dx + dy * dy)
@@ -234,8 +239,9 @@ export function App() {
             check()
           })
 
-          // If bailed (actor was claimed by another action), abort entirely
+          // If bailed (frozen externally or chase timeout), abort entirely
           if (bailed) {
+            finishInteract(actor)
             actor.bubbleEmoji = ''
             actor.bubbleTimer = 0
             setBusySet((prev) => { const n = new Set(prev); n.delete(bkey); return n })
@@ -264,7 +270,8 @@ export function App() {
       await new Promise((r) => setTimeout(r, 800))
 
       const actorType = actorId === 'user-1' ? 'user' as const : 'persona' as const
-      const result = await actOnPersona(targetId, actionName, actorId, actorType)
+      const appraisal = ACTIONS_BY_NAME.get(actionName)?.appraisalVector
+      const result = await actOnPersona(targetId, actionName, actorId, actorType, appraisal)
 
       setBusySet((prev) => {
         const next = new Set(prev)
