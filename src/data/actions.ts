@@ -2,7 +2,7 @@
  * 16 actions for the viz-pixel demo village.
  *
  * Each action has an AppraisalVector (Scherer CPM, 2001) with 9 dimensions,
- * tuned for the Sprott oscillator emotion pipeline in @molroo-ai/core.
+ * tuned for the Sprott oscillator emotion pipeline in @molroo-io/core.
  *
  * Field ranges:
  *   goalRelevance:      [0, 1]   — how important is this event to my goals

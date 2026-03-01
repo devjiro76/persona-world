@@ -1,5 +1,5 @@
-import { World } from '@molroo-ai/world-sdk'
-import type { AppraisalVector } from '@molroo-ai/world-sdk'
+import { World } from '@molroo-io/world-sdk'
+import type { AppraisalVector } from '@molroo-io/world-sdk'
 import type { Persona } from '../types'
 
 const VID = import.meta.env.PROD

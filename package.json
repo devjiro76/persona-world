@@ -1,5 +1,5 @@
 {
-  "name": "@molroo-ai/viz-pixel",
+  "name": "@molroo-io/viz-pixel",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@molroo-ai/world-sdk": "file:../../sdk/world",
+    "@molroo-io/world-sdk": "^0.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
