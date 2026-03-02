@@ -3,7 +3,7 @@ import type { AppraisalVector } from '@molroo-io/sdk/world'
 import type { Persona } from '../types'
 
 const VID = import.meta.env.PROD
-  ? '4a618dba-b9e7-4848-a0d7-9d88000b3999'
+  ? 'b9ef7860-2adf-4d97-8ab5-4bacb75f2027'
   : '6b4ef66c-3140-4e02-bc90-56dfe1903815'
 
 const molroo = new Molroo({
