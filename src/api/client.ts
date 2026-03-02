@@ -1,4 +1,4 @@
-import { World } from '@molroo-io/sdk/world'
+import { Molroo } from '@molroo-io/sdk/world'
 import type { AppraisalVector } from '@molroo-io/sdk/world'
 import type { Persona } from '../types'
 
@@ -6,22 +6,22 @@ const VID = import.meta.env.PROD
   ? '4a618dba-b9e7-4848-a0d7-9d88000b3999'
   : '6b4ef66c-3140-4e02-bc90-56dfe1903815'
 
-const world = new World({
+const molroo = new Molroo({
   apiKey: import.meta.env.VITE_API_KEY ?? 'dev-test-key',
   baseUrl: import.meta.env.PROD ? 'https://api.molroo.io' : 'http://localhost:8788',
 })
 
-const villagePromise = world.getVillage(VID)
+const worldPromise = molroo.getWorld(VID)
 
 export async function fetchPersonas(_signal?: AbortSignal): Promise<Persona[]> {
-  const village = await villagePromise
-  const list = await village.listPersonas() as Persona[]
+  const world = await worldPromise
+  const list = await world.listPersonas() as Persona[]
   if (!list.length) return []
 
   await Promise.all(
     list.map(async (p) => {
       try {
-        const detail = await village.getPersona(p.persona_config_id) as Persona & { state?: Persona['state'] }
+        const detail = await world.getPersona(p.persona_config_id) as Persona & { state?: Persona['state'] }
         if (detail?.state) p.state = detail.state
       } catch {
         // ignore
@@ -48,8 +48,8 @@ export async function actOnPersona(
   appraisal?: AppraisalVector,
 ): Promise<ActResult | null> {
   try {
-    const village = await villagePromise
-    const result = await village.interact({
+    const world = await worldPromise
+    const result = await world.interact({
       target: targetId,
       action: actionName,
       actionLabel: actionName,
