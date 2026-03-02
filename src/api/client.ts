@@ -1,5 +1,5 @@
-import { World } from '@molroo-io/world-sdk'
-import type { AppraisalVector } from '@molroo-io/world-sdk'
+import { World } from '@molroo-io/sdk/world'
+import type { AppraisalVector } from '@molroo-io/sdk/world'
 import type { Persona } from '../types'
 
 const VID = import.meta.env.PROD
@@ -8,7 +8,7 @@ const VID = import.meta.env.PROD
 
 const world = new World({
   apiKey: import.meta.env.VITE_API_KEY ?? 'dev-test-key',
-  baseUrl: import.meta.env.PROD ? 'https://world-api.molroo.io' : 'http://localhost:8788',
+  baseUrl: import.meta.env.PROD ? 'https://api.molroo.io' : 'http://localhost:8788',
 })
 
 const villagePromise = world.getVillage(VID)

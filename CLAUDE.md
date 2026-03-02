@@ -13,7 +13,7 @@ npm run build    # tsc + Vite production build
 
 - `engine/` — Game logic. State machine: `IDLE → WALK → IDLE | INTERACT → REACT → IDLE`. BFS pathfinding.
 - `auto-tick/` — AI action picker. HEXACO personality biases action selection.
-- `api/client.ts` — REST client. Dev proxies `/api` → `localhost:8788`; prod → `https://world-api.molroo.io`.
+- `api/client.ts` — REST client. Dev proxies `/api` → `localhost:8788`; prod → `https://api.molroo.io`.
 - `ui/` — React components (canvas, side panel, toolbar, event log).
 
 ## Gotchas
