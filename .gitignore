@@ -9,3 +9,5 @@ package-lock.json
 eval-output.jsonl
 eval-report.md
 seed.sh
+.claude/
+.omc/

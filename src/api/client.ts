@@ -1,17 +1,51 @@
 import { Molroo } from '@molroo-io/sdk/world'
-import type { AppraisalVector, InteractResult } from '@molroo-io/sdk/world'
+import type { Appraisal, InteractResult } from '@molroo-io/sdk/world'
 import type { Persona } from '../types'
+import { PERSONAS } from '../data/personas'
 
-const VID = import.meta.env.PROD
-  ? 'b9ef7860-2adf-4d97-8ab5-4bacb75f2027'
-  : '313b9800-b5a5-4226-b134-12183fbda72f'
+const STORAGE_KEY = 'persona-world:world-id'
 
 const molroo = new Molroo({
-  apiKey: import.meta.env.VITE_API_KEY ?? 'dev-test-key',
-  baseUrl: import.meta.env.PROD ? 'https://api.molroo.io' : 'http://localhost:8788',
+  apiKey: import.meta.env.VITE_API_KEY ?? '',
+  baseUrl: import.meta.env.VITE_API_URL ?? 'https://api.molroo.io',
 })
 
-const worldPromise = molroo.getWorld(VID)
+async function resolveWorld() {
+  // 1. Env var takes priority
+  const envId = import.meta.env.VITE_WORLD_ID
+  if (envId) return molroo.getWorld(envId)
+
+  // 2. Check localStorage for previously created world
+  const storedId = localStorage.getItem(STORAGE_KEY)
+  if (storedId) {
+    try {
+      return await molroo.getWorld(storedId)
+    } catch {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  }
+
+  // 3. Create a new world + seed personas
+  console.log('[persona-world] Creating new world...')
+  const world = await molroo.createWorld({ name: 'Persona World' })
+  localStorage.setItem(STORAGE_KEY, world.id)
+
+  console.log('[persona-world] Seeding personas...')
+  await Promise.all(
+    PERSONAS.map((p) =>
+      world.addPersona({
+        configId: p.persona_config_id,
+        displayName: p.display_name,
+        config: p.config,
+      }),
+    ),
+  )
+  console.log(`[persona-world] Seeded ${PERSONAS.length} personas`)
+
+  return world
+}
+
+const worldPromise = resolveWorld()
 
 export async function fetchPersonas(_signal?: AbortSignal): Promise<Persona[]> {
   const world = await worldPromise
@@ -36,7 +70,7 @@ export async function actOnPersona(
   actionName: string,
   actorId: string,
   actorType: 'user' | 'persona',
-  appraisal?: AppraisalVector,
+  appraisal?: Appraisal,
 ): Promise<InteractResult | null> {
   try {
     const world = await worldPromise
