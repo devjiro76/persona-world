@@ -9,7 +9,8 @@ interface UseAutoTickOpts {
 
 export function useAutoTick({ personas, onTick }: UseAutoTickOpts) {
   const [running, setRunning] = useState(false)
-  const [speed, setSpeed] = useState(5)
+  const [speed, _setSpeed] = useState(5)
+  const speedRef = useRef(5)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const runningRef = useRef(false)
   // Tracks actors mid-action AND in post-action cooldown
@@ -17,11 +18,16 @@ export function useAutoTick({ personas, onTick }: UseAutoTickOpts) {
   // Tracks current targets to avoid dog-piling one character
   const busyTargets = useRef(new Set<string>())
 
+  const setSpeed = useCallback((v: number) => {
+    speedRef.current = v
+    _setSpeed(v)
+  }, [])
+
   const getInterval = useCallback(() => {
-    const base = 4 - speed * 0.3
+    const base = 4 - speedRef.current * 0.3
     const jitter = base * 0.4 * (Math.random() - 0.5)
     return Math.max(300, (base + jitter) * 1000)
-  }, [speed])
+  }, [])
 
   const tick = useCallback(() => {
     if (!runningRef.current || personas.length < 2) return

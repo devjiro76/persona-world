@@ -1,9 +1,9 @@
 import { TILE_SIZE, BUBBLE_VERTICAL_OFFSET_PX, COLORS } from '../constants'
-import { t } from '../data/i18n'
+import { t, tEmotion } from '../data/i18n'
 import { TileType, CharacterState, Direction } from '../types'
 import type { Character, FurnitureInstance } from '../types'
 import { assets } from '../sprites/assetLoader'
-import { getEmotionTint } from '../sprites/emotionFx'
+import { getEmotionTint, emoEmoji } from '../sprites/emotionFx'
 
 // Character sprite frame size
 const FRAME_W = 16
@@ -274,22 +274,22 @@ function renderCharacterHUD(
     const spriteTopY = offsetY + ch.y * zoom - FRAME_H * zoom
 
     const vad = ch.persona.state?.emotion?.vad
-    const disc = ch.persona.state?.emotion?.discrete
+    const emotionLabel = ch.persona.state?.emotion?.label
     const name = ch.persona.display_name || ch.persona.config.identity.name
-    const emoji = disc?.primary ? emoEmojiForHUD(disc.primary) : ''
+    const emoji = emotionLabel ? emoEmoji(emotionLabel) : ''
 
     // Layout dimensions
-    const nameFontSize = Math.max(8, Math.round(3.5 * zoom))
-    const emoFontSize = Math.max(7, Math.round(2.8 * zoom))
-    const barW = Math.max(20, Math.round(16 * zoom))
-    const barH = Math.max(2, Math.round(1.5 * zoom))
-    const barGap = Math.max(1, Math.round(0.8 * zoom))
-    const padding = Math.round(2 * zoom)
+    const nameFontSize = Math.max(12, Math.round(6 * zoom))
+    const emoFontSize = Math.max(11, Math.round(5 * zoom))
+    const barW = Math.max(28, Math.round(22 * zoom))
+    const barH = Math.max(3, Math.round(2.5 * zoom))
+    const barGap = Math.max(2, Math.round(1.2 * zoom))
+    const padding = Math.round(3 * zoom)
 
     // Measure total height: name + emotion + 3 bars
     const lineGap = Math.round(1.5 * zoom)
     let totalH = nameFontSize + lineGap
-    if (disc) totalH += emoFontSize + lineGap
+    if (emotionLabel) totalH += emoFontSize + lineGap
     if (vad) totalH += (barH + barGap) * 3
     totalH += padding * 2
 
@@ -299,7 +299,7 @@ function renderCharacterHUD(
 
     // Background panel
     ctx.save()
-    ctx.fillStyle = 'rgba(8,8,13,0.7)'
+    ctx.fillStyle = 'rgba(8,8,13,0.85)'
     ctx.beginPath()
     ctx.roundRect(panelX, panelY, panelW, totalH, 3 * zoom)
     ctx.fill()
@@ -315,11 +315,11 @@ function renderCharacterHUD(
     curY += nameFontSize + lineGap
 
     // Emotion
-    if (disc) {
+    if (emotionLabel) {
       const vColor = vad ? (vad.V > 0.3 ? COLORS.pos : vad.V < -0.3 ? COLORS.neg : COLORS.warn) : COLORS.dim
       ctx.font = `${emoFontSize}px sans-serif`
       ctx.fillStyle = vColor
-      const emoText = emoji ? `${emoji} ${disc.primary}` : disc.primary
+      const emoText = emoji ? `${emoji} ${tEmotion(emotionLabel)}` : tEmotion(emotionLabel)
       ctx.fillText(emoText, cx, curY, panelW - padding * 2)
       curY += emoFontSize + lineGap
     }
@@ -360,22 +360,6 @@ function drawHUDBar(
   ctx.globalAlpha = 0.85
   ctx.fillRect(fillX, y, fillW, h)
   ctx.globalAlpha = 1
-}
-
-// Simple emoji lookup for HUD (avoid importing full emoEmoji to keep renderer lean)
-function emoEmojiForHUD(primary: string): string {
-  const map: Record<string, string> = {
-    joy: '\u{1F60A}', happiness: '\u{1F604}', contentment: '\u{1F60C}', amusement: '\u{1F604}',
-    excitement: '\u{1F929}', love: '\u{1F970}', gratitude: '\u{1F64F}', pride: '\u{1F60E}',
-    hope: '\u{1F31F}', relief: '\u{1F60C}', serenity: '\u{1F60C}', interest: '\u{1F9D0}',
-    surprise: '\u{1F62E}', confusion: '\u{1F615}',
-    sadness: '\u{1F622}', grief: '\u{1F62D}', melancholy: '\u{1F614}', loneliness: '\u{1F625}',
-    anger: '\u{1F621}', frustration: '\u{1F624}', irritation: '\u{1F620}', rage: '\u{1F92C}',
-    fear: '\u{1F628}', anxiety: '\u{1F630}', dread: '\u{1F631}',
-    disgust: '\u{1F922}', contempt: '\u{1F612}', shame: '\u{1F633}', guilt: '\u{1F625}',
-    embarrassment: '\u{1F633}', jealousy: '\u{1F624}', envy: '\u{1F624}',
-  }
-  return map[primary] || '\u{1F610}'
 }
 
 

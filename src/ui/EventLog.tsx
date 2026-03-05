@@ -12,6 +12,7 @@ const ACLS: Record<string, string> = {
 interface Props {
   logs: LogEntry[]
   compact?: boolean
+  onSelect?: (id: string) => void
 }
 
 // Mobile toast: shows last 3 events as floating notifications
@@ -120,7 +121,7 @@ export function MobileEventOverlay({ logs, onClose }: { logs: LogEntry[]; onClos
 }
 
 // Desktop event log (bottom bar)
-export function EventLog({ logs }: Props) {
+export function EventLog({ logs, onSelect }: Props) {
   const [expanded, setExpanded] = useState(true)
 
   return (
@@ -156,25 +157,44 @@ export function EventLog({ logs }: Props) {
         {logs.length === 0 ? (
           <div style={{ color: COLORS.muted, fontSize: 10, padding: '4px 0' }}>{t('perform an action to see logs here')}</div>
         ) : (
-          logs.slice(0, 50).map((e, i) => {
-            const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
-            return (
-              <div
-                key={i}
-                style={{ display: 'flex', gap: 8, padding: '3px 0', fontSize: 10, borderBottom: '1px solid #ffffff04', alignItems: 'baseline' }}
-              >
-                <span style={{ color: COLORS.muted, fontSize: 9, minWidth: 55 }}>{e.time}</span>
-                <span style={{ minWidth: 50, fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : e.auto ? COLORS.blue : COLORS.text }}>
-                  {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}{e.auto ? ' \u{1F916}' : ''}
-                </span>
-                <span style={{ color: COLORS.muted, fontSize: 8 }}>\u2192</span>
-                <span style={{ minWidth: 50, color: COLORS.text }}>{e.target.slice(0, 8)}</span>
-                <span style={{ minWidth: 65, fontWeight: 600, color: cls }}>{t(e.action)}</span>
-                <span style={{ fontSize: 12, minWidth: 16 }}>{e.emoji}</span>
-                <span style={{ color: COLORS.dim, flex: 1, fontSize: 10 }}>{tEmotion(e.emotion)}</span>
-              </div>
-            )
-          })
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                {[t('time'), t('actor'), '', t('target'), t('action_header'), t('reaction')].map((h, i) => (
+                  <th key={i} style={{ padding: '4px 6px', textAlign: 'left', fontSize: 10, color: COLORS.muted, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {logs.slice(0, 50).map((e, i) => {
+                const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
+                return (
+                  <tr key={i} style={{ borderBottom: '1px solid #ffffff04' }}>
+                    <td style={{ padding: '3px 6px', color: COLORS.muted, fontSize: 10, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{e.time}</td>
+                    <td
+                      onClick={() => e.from !== 'user-1' && onSelect?.(e.from)}
+                      style={{ padding: '3px 6px', fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : e.auto ? COLORS.blue : COLORS.text, whiteSpace: 'nowrap', cursor: e.from !== 'user-1' ? 'pointer' : 'default' }}
+                    >
+                      {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}{e.auto ? ' \u{1F916}' : ''}
+                    </td>
+                    <td style={{ padding: '3px 2px', color: COLORS.muted, fontSize: 10 }}>{'\u2192'}</td>
+                    <td
+                      onClick={() => onSelect?.(e.target)}
+                      style={{ padding: '3px 6px', color: COLORS.text, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                    >
+                      {e.target.slice(0, 8)}
+                    </td>
+                    <td style={{ padding: '3px 6px', fontWeight: 600, color: cls, whiteSpace: 'nowrap' }}>{t(e.action)}</td>
+                    <td style={{ padding: '3px 6px', color: COLORS.dim, whiteSpace: 'nowrap' }}>
+                      {e.emoji} {tEmotion(e.emotion)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

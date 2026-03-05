@@ -3,6 +3,12 @@ type Locale = 'en' | 'ko'
 let locale: Locale = 'en'
 
 export function initLocale(): void {
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const forced = params?.get('lang')
+  if (forced === 'ko' || forced === 'en') {
+    locale = forced
+    return
+  }
   const lang = (typeof navigator !== 'undefined' ? navigator.language : 'en').split('-')[0]
   locale = lang === 'ko' ? 'ko' : 'en'
 }
@@ -34,6 +40,11 @@ const ko: Record<string, string> = {
 
   // Event log
   'Global Log': '전체 기록',
+  'time': '시간',
+  'actor': '행위자',
+  'target': '대상',
+  'action_header': '행동',
+  'reaction': '반응',
   'collapse': '접기',
   'expand': '펼치기',
 
@@ -42,6 +53,7 @@ const ko: Record<string, string> = {
   'Use action buttons to interact and watch their emotional reaction': '행동 버튼으로 상호작용하고 감정 반응을 관찰하세요',
   'Press Auto to let characters interact on their own': '자동 버튼을 눌러 캐릭터가 자율적으로 상호작용하게 하세요',
   'Scroll to zoom, drag to pan the map': '스크롤로 확대, 드래그로 이동하세요',
+  'Click to start': '클릭하여 시작',
   'Got it': '확인',
   'info.p1': '각 캐릭터는 고유한 성격과 감정 상태를 가지고 있습니다. 자율적으로 상호작용하며 관계를 형성하고, 감정적으로 반응하며, 시간이 지남에 따라 변화합니다.',
   'info.p2': '캐릭터를 클릭해서 내면 세계를 살펴보세요. 행동을 해보고 감정 변화를 관찰하세요.',
@@ -115,6 +127,12 @@ const koEmotions: Record<string, string> = {
   nostalgia: '향수', admiration: '경탄', confusion: '혼란',
   melancholy: '우울', loneliness: '외로움', irritation: '짜증',
   rage: '격분', dread: '두려움', embarrassment: '당혹', jealousy: '시기',
+  grief: '비통', calm: '차분', numbness: '무감각', sympathy: '동정', compassion: '연민',
+  curiosity: '호기심', determination: '결의', satisfaction: '만족감',
+  resignation: '체념', indifference: '무관심', affection: '애정',
+  warmth: '온기', hostility: '적대감', suspicion: '의심', respect: '존경',
+  annoyance: '짜증', panic: '공황', sorrow: '비애', delight: '환희',
+  euphoria: '황홀', worry: '걱정', optimism: '낙관', pessimism: '비관',
 }
 
 // English fallback for namespaced keys (where the key itself is not the display text)

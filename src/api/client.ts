@@ -1,10 +1,10 @@
 import { Molroo } from '@molroo-io/sdk/world'
-import type { AppraisalVector } from '@molroo-io/sdk/world'
+import type { AppraisalVector, InteractResult } from '@molroo-io/sdk/world'
 import type { Persona } from '../types'
 
 const VID = import.meta.env.PROD
   ? 'b9ef7860-2adf-4d97-8ab5-4bacb75f2027'
-  : '6b4ef66c-3140-4e02-bc90-56dfe1903815'
+  : '313b9800-b5a5-4226-b134-12183fbda72f'
 
 const molroo = new Molroo({
   apiKey: import.meta.env.VITE_API_KEY ?? 'dev-test-key',
@@ -31,25 +31,16 @@ export async function fetchPersonas(_signal?: AbortSignal): Promise<Persona[]> {
   return list
 }
 
-export interface ActResult {
-  emotion: {
-    vad: { V: number; A: number; D: number }
-    discrete: { primary: string; secondary?: string; intensity: number }
-  }
-  mood?: { vad: { V: number; A: number; D: number } }
-  somatic?: string[]
-}
-
 export async function actOnPersona(
   targetId: string,
   actionName: string,
   actorId: string,
   actorType: 'user' | 'persona',
   appraisal?: AppraisalVector,
-): Promise<ActResult | null> {
+): Promise<InteractResult | null> {
   try {
     const world = await worldPromise
-    const result = await world.interact({
+    return await world.interact({
       target: targetId,
       action: actionName,
       actionLabel: actionName,
@@ -57,7 +48,6 @@ export async function actOnPersona(
       actor: actorId,
       actorType,
     })
-    return (result as unknown as ActResult) ?? null
   } catch (err) {
     console.warn(`[interact] ${actionName} on ${targetId} failed:`, err)
     return null

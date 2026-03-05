@@ -12,7 +12,7 @@ import { trackFeeling } from './auto-tick/autoTick'
 import { emoEmoji } from './sprites/emotionFx'
 import { actOnPersona } from './api/client'
 import { ACTIONS_BY_NAME } from './data/actions'
-import { t } from './data/i18n'
+import { t, tEmotion } from './data/i18n'
 import { loadAssets } from './sprites/assetLoader'
 import { OfficeCanvas } from './ui/OfficeCanvas'
 import { SidePanel } from './ui/SidePanel'
@@ -163,6 +163,19 @@ export function App() {
           panRef.current.y += (targetPanY - panRef.current.y) * smoothing
         }
       }
+
+      // Clamp pan so the camera stays within map bounds
+      const canvas = canvasRef.current
+      if (canvas) {
+        const cols = world.tileMap[0]?.length || 0
+        const rows = world.tileMap.length
+        const mapW = cols * TILE_SIZE * zoom
+        const mapH = rows * TILE_SIZE * zoom
+        const maxPanX = Math.max(0, (mapW - canvas.width) / 2)
+        const maxPanY = Math.max(0, (mapH - canvas.height) / 2)
+        panRef.current.x = Math.max(-maxPanX, Math.min(maxPanX, panRef.current.x))
+        panRef.current.y = Math.max(-maxPanY, Math.min(maxPanY, panRef.current.y))
+      }
     },
     render: (ctx) => {
       const world = worldRef.current
@@ -199,7 +212,7 @@ export function App() {
 
       const targetCh = world.characters.get(targetId)
       const targetName = targetCh?.persona.config.identity.name || targetId.slice(0, 6)
-      const actorName = actorId === 'user-1' ? 'You' : (world.characters.get(actorId)?.persona.config.identity.name || actorId.slice(0, 6))
+      const actorName = actorId === 'user-1' ? t('You') : (world.characters.get(actorId)?.persona.config.identity.name || actorId.slice(0, 6))
 
       // Track what we froze so we always clean up
       let frozeActor = false
@@ -209,6 +222,13 @@ export function App() {
       if (isAuto && actorId !== 'user-1') {
         const actor = world.characters.get(actorId)
         if (actor && targetCh) {
+          // Stop target wandering so actor has a stable destination
+          if (targetCh.state === CharacterState.WALK) {
+            targetCh.path = []
+            targetCh.state = CharacterState.IDLE
+          }
+          targetCh.wanderTimer = 999
+
           walkToCharacter(actor, targetId, world.tileMap, world.blockedTiles, world.characters)
           actor.bubbleEmoji = '\u{1F4AD}'
           actor.bubbleText = `${targetName}`
@@ -230,7 +250,7 @@ export function App() {
               const dist = Math.sqrt(dx * dx + dy * dy)
               if (dist <= PROXIMITY) {
                 resolve()
-              } else if ((actor.state === CharacterState.IDLE || (actor.state === CharacterState.WALK && actor.path.length === 0)) && dist > PROXIMITY) {
+              } else if ((actor.state === CharacterState.IDLE || actor.state === CharacterState.INTERACT || (actor.state === CharacterState.WALK && actor.path.length === 0)) && dist > PROXIMITY) {
                 walkToCharacter(actor, targetId, world.tileMap, world.blockedTiles, world.characters)
                 setTimeout(check, 100)
               } else {
@@ -239,6 +259,9 @@ export function App() {
             }
             check()
           })
+
+          // Restore target wandering
+          targetCh.wanderTimer = 2 + Math.random() * 3
 
           // If bailed (frozen externally or chase timeout), abort entirely
           if (bailed) {
@@ -254,7 +277,7 @@ export function App() {
           targetCh.frozen = true; frozeTarget = true
 
           actor.bubbleEmoji = ACT_EMOJI[actionName] || '\u{2753}'
-          actor.bubbleText = `${actionName} -> ${targetName}`
+          actor.bubbleText = `${t(actionName)} -> ${targetName}`
           actor.bubbleTimer = 3
           actor.bubbleType = 'action'
         }
@@ -263,7 +286,7 @@ export function App() {
         if (targetCh) {
           targetCh.frozen = true; frozeTarget = true
           targetCh.bubbleEmoji = ACT_EMOJI[actionName] || '\u{2753}'
-          targetCh.bubbleText = `${actionName} <- ${actorName}`
+          targetCh.bubbleText = `${t(actionName)} <- ${actorName}`
           targetCh.bubbleTimer = 3
           targetCh.bubbleType = 'action'
         }
@@ -290,9 +313,9 @@ export function App() {
         setTotalActions((prev) => prev + 1)
         trackFeeling(targetId, actorId, result.emotion.vad.V)
 
-        const disc = result.emotion.discrete?.primary || '?'
+        const disc = result.emotion.label || '?'
         const emoji = emoEmoji(disc)
-        const time = new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        const time = new Date().toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
         const logEntry: LogEntry = {
           time,
@@ -306,7 +329,7 @@ export function App() {
 
         // React animation on target
         if (targetCh) {
-          triggerReact(targetCh, emoji, `${disc} <- ${actorName}`)
+          triggerReact(targetCh, emoji, `${tEmotion(disc)} <- ${actorName}`)
           targetCh.bubbleType = 'react'
         }
 
@@ -337,11 +360,11 @@ export function App() {
   })
 
   const handleZoom = useCallback((delta: number) => {
-    setZoom((prev) => Math.max(1, Math.min(8, Math.round(prev) + delta)))
+    setZoom((prev) => Math.max(1, Math.min(3, Math.round(prev) + delta)))
   }, [])
 
   const handleZoomFloat = useCallback((newZoom: number) => {
-    setZoom(Math.max(1, Math.min(8, newZoom)))
+    setZoom(Math.max(1, Math.min(3, newZoom)))
   }, [])
 
   const handleSelectFromDirectory = useCallback((id: string) => {
@@ -377,6 +400,7 @@ export function App() {
             onSelect={setSelectedId}
             offsetRef={offsetRef}
             panRef={panRef}
+            disabled={!autoTick.running}
           />
           {(loading || !assetsReady) && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.dim, fontSize: 12 }}>
@@ -386,34 +410,48 @@ export function App() {
 
           {/* Center play button when auto-tick is off */}
           {!autoTick.running && assetsReady && !loading && (
-            <button
-              onClick={autoTick.toggle}
+            <div
               style={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: mobile ? 64 : 72,
-                height: mobile ? 64 : 72,
-                borderRadius: '50%',
-                border: `2px solid ${COLORS.accent}`,
-                background: 'rgba(233,69,96,0.15)',
-                color: COLORS.accent,
-                fontSize: mobile ? 28 : 32,
-                cursor: 'pointer',
+                inset: 0,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 50,
-                backdropFilter: 'blur(4px)',
-                transition: 'transform 0.15s, background 0.15s',
-                paddingLeft: 4,
+                background: 'rgba(8,8,13,0.5)',
+                cursor: 'pointer',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(233,69,96,0.3)'; e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(233,69,96,0.15)'; e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)' }}
+              onClick={autoTick.toggle}
             >
-              {'\u25B6'}
-            </button>
+              <button
+                style={{
+                  width: mobile ? 88 : 100,
+                  height: mobile ? 88 : 100,
+                  borderRadius: '50%',
+                  border: `3px solid ${COLORS.accent}`,
+                  background: 'rgba(233,69,96,0.2)',
+                  color: '#fff',
+                  fontSize: mobile ? 36 : 42,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(8px)',
+                  transition: 'transform 0.15s, background 0.15s, box-shadow 0.15s',
+                  paddingLeft: 6,
+                  boxShadow: `0 0 40px rgba(233,69,96,0.3)`,
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(233,69,96,0.4)'; e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 0 60px rgba(233,69,96,0.5)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(233,69,96,0.2)'; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(233,69,96,0.3)' }}
+              >
+                {'\u25B6'}
+              </button>
+              <div style={{ marginTop: 16, color: '#fff', fontSize: mobile ? 14 : 16, fontWeight: 600, letterSpacing: 1, opacity: 0.9 }}>
+                {t('Click to start')}
+              </div>
+            </div>
           )}
 
           {/* Mobile event toast */}
@@ -499,7 +537,7 @@ export function App() {
         )}
       </div>
 
-      {!mobile && <EventLog logs={globalLogs} />}
+      {!mobile && <EventLog logs={globalLogs} onSelect={setSelectedId} />}
 
       {/* Mobile full log overlay */}
       {mobile && showMobileLog && (

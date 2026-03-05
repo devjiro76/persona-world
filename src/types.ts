@@ -32,11 +32,10 @@ export interface VAD {
 
 export interface EmotionState {
   vad: VAD
-  discrete: {
-    primary: string
-    secondary?: string
-    intensity: number
-  }
+  delta?: VAD
+  label: string
+  secondary_label: string | null
+  intensity: number
 }
 
 export interface PersonaConfig {
@@ -46,7 +45,7 @@ export interface PersonaConfig {
 
 export interface PersonaState {
   emotion?: EmotionState
-  mood?: { vad: VAD }
+  mood?: { vad: VAD; label: string }
   somatic?: string[]
 }
 

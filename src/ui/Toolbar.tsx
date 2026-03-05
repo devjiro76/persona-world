@@ -109,7 +109,7 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, borderLeft: `1px solid ${COLORS.border}`, paddingLeft: 8 }}>
           <MiniButton label="-" onClick={() => onZoomChange(Math.max(1, Math.floor(zoom) - 1))} />
           <span style={{ fontSize: 9, color: COLORS.dim, minWidth: 20, textAlign: 'center' }}>{Math.round(zoom)}x</span>
-          <MiniButton label="+" onClick={() => onZoomChange(Math.min(8, Math.ceil(zoom) + 1))} />
+          <MiniButton label="+" onClick={() => onZoomChange(Math.min(3, Math.ceil(zoom) + 1))} />
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderLeft: `1px solid ${COLORS.border}`, paddingLeft: 16 }}>
@@ -117,7 +117,7 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
           <input
             type="range"
             min={1}
-            max={8}
+            max={3}
             value={Math.round(zoom)}
             onChange={(e) => onZoomChange(parseInt(e.target.value))}
             style={{ width: 60, accentColor: COLORS.accent }}

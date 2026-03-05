@@ -12,11 +12,12 @@ interface Props {
   onSelect: (id: string | null) => void
   offsetRef: React.RefObject<{ x: number; y: number }>
   panRef: React.RefObject<{ x: number; y: number }>
+  disabled?: boolean
 }
 
 const PAN_SPEED = 8 // px per key frame
 
-export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onZoomFloat, onSelect, offsetRef, panRef }: Props) {
+export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onZoomFloat, onSelect, offsetRef, panRef, disabled }: Props) {
   const dragging = useRef(false)
   const dragStart = useRef({ x: 0, y: 0 })
   const lastMouse = useRef({ x: 0, y: 0 })
@@ -55,7 +56,7 @@ export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onZoomFloat, o
     let rafId = 0
     const tick = () => {
       const keys = keysDown.current
-      if (keys.size > 0) {
+      if (keys.size > 0 && !disabled) {
         if (keys.has('ArrowLeft')) panRef.current.x += PAN_SPEED
         if (keys.has('ArrowRight')) panRef.current.x -= PAN_SPEED
         if (keys.has('ArrowUp')) panRef.current.y += PAN_SPEED
@@ -77,19 +78,21 @@ export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onZoomFloat, o
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       e.preventDefault()
+      if (disabled) return
       onZoom(e.deltaY > 0 ? -1 : 1)
     },
-    [onZoom],
+    [onZoom, disabled],
   )
 
   // --- Mouse drag ---
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (disabled) return
     if (e.button === 0) {
       dragging.current = true
       dragStart.current = { x: e.clientX, y: e.clientY }
       lastMouse.current = { x: e.clientX, y: e.clientY }
     }
-  }, [])
+  }, [disabled])
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
@@ -134,6 +137,7 @@ export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onZoomFloat, o
       Math.sqrt((a.clientX - b.clientX) ** 2 + (a.clientY - b.clientY) ** 2)
 
     const onTouchStart = (e: TouchEvent) => {
+      if (disabled) return
       if (e.touches.length === 2) {
         e.preventDefault()
         pinching = true
@@ -158,7 +162,7 @@ export function OfficeCanvas({ worldRef, canvasRef, zoom, onZoom, onZoomFloat, o
         if (Math.abs(delta) > 5) {
           const zoomDelta = delta / 40
           const currentZoom = zoom
-          const newZoom = Math.max(1, Math.min(8, currentZoom + zoomDelta))
+          const newZoom = Math.max(1, Math.min(3, currentZoom + zoomDelta))
           onZoomFloat(newZoom)
           lastPinchDist = newDist
         }

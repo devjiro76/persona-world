@@ -52,6 +52,8 @@ const EMOTION_EMOJIS: Record<string, string> = {
   awe: '\u{1F929}',            // star-struck
   serenity: '\u{1F607}',       // smiling face with halo
   neutral: '\u{1F610}',        // neutral face
+  calm: '\u{1F60C}',            // relieved face
+  numbness: '\u{1F636}',        // face without mouth
   excitement: '\u{1F929}',     // star-struck
   frustration: '\u{1F624}',    // face with look of triumph
   disappointment: '\u{1F61E}', // disappointed face

@@ -49,7 +49,7 @@ function VadBar({ label, value }: { label: string; value: number }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ width: 70, fontSize: 9, color: COLORS.muted, fontWeight: 600 }}>{label}</span>
+      <span style={{ width: 70, fontSize: 10, color: COLORS.muted, fontWeight: 600 }}>{label}</span>
       <div style={{ flex: 1, height: 6, background: '#ffffff08', borderRadius: 3, position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: '50%', width: 1, height: '100%', background: '#ffffff20' }} />
         <div
@@ -97,12 +97,12 @@ type CompactTab = 'actions' | 'feelings' | 'log'
 function CharacterDirectory({ personas, onSelect, compact }: { personas: Persona[]; onSelect: (id: string) => void; compact?: boolean }) {
   return (
     <div style={{ padding: compact ? '8px 16px' : 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600, marginBottom: 4 }}>
         {t('characters')} ({personas.length})
       </div>
       {personas.map((p) => {
         const name = p.display_name || p.config.identity.name
-        const emotion = p.state?.emotion?.discrete?.primary
+        const emotion = p.state?.emotion?.label
         const emoji = emotion ? emoEmoji(emotion) : '\u{1F610}'
         const tags = describePersonality(p.config.personality)
         const vad = p.state?.emotion?.vad
@@ -131,7 +131,7 @@ function CharacterDirectory({ personas, onSelect, compact }: { personas: Persona
               <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.text }}>{name}</div>
               <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
                 {tags.slice(0, 3).map(tag => (
-                  <span key={tag} style={{ fontSize: 8, padding: '1px 4px', background: '#ffffff08', borderRadius: 3, color: COLORS.dim }}>{tag}</span>
+                  <span key={tag} style={{ fontSize: 10, padding: '2px 6px', background: '#ffffff08', borderRadius: 3, color: COLORS.dim }}>{tag}</span>
                 ))}
               </div>
             </div>
@@ -161,14 +161,14 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
 
   const pid = persona.persona_config_id
   const s = persona.state
-  const emoji = emoEmoji(s?.emotion?.discrete?.primary)
+  const emoji = emoEmoji(s?.emotion?.label)
   const allEntities = ['user-1', ...personas.map((x) => x.persona_config_id).filter((x) => x !== pid)]
 
   // --- Shared sub-components ---
   const emotionBlock = (
     <div style={{ background: COLORS.card, borderRadius: 8, padding: compact ? 10 : 12 }}>
       {!compact && (
-        <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
+        <div style={{ fontSize: 11, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
           {t('emotional state')}
         </div>
       )}
@@ -176,10 +176,10 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
         <>
           <div style={{ fontSize: compact ? 12 : 14, fontWeight: 700, textTransform: 'capitalize', color: vColor(s.emotion.vad.V), display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: compact ? 14 : 18 }}>{emoji}</span>
-            {s.emotion.discrete?.primary ? tEmotion(s.emotion.discrete.primary) : '?'}
-            {s.emotion.discrete?.secondary && ` / ${tEmotion(s.emotion.discrete.secondary)}`}
+            {s.emotion.label ? tEmotion(s.emotion.label) : '?'}
+            {s.emotion.secondary_label && ` / ${tEmotion(s.emotion.secondary_label)}`}
             <span style={{ fontSize: 10, color: COLORS.dim, fontWeight: 400 }}>
-              ({((s.emotion.discrete?.intensity || 0) * 100).toFixed(0)}%)
+              ({((s.emotion.intensity || 0) * 100).toFixed(0)}%)
             </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: compact ? 4 : 8 }}>
@@ -409,7 +409,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
 
       {/* Actions */}
       <div style={{ background: COLORS.card, borderRadius: 8, padding: 12 }}>
-        <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
+        <div style={{ fontSize: 11, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
           {t('actions')}
         </div>
         {actionsBlock}
@@ -417,7 +417,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
 
       {/* Feelings */}
       <div style={{ background: COLORS.card, borderRadius: 8, padding: 12 }}>
-        <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
+        <div style={{ fontSize: 11, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
           {t('feelings toward others')}
         </div>
         {feelingsBlock}
@@ -425,7 +425,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
 
       {/* Log */}
       <div style={{ background: COLORS.card, borderRadius: 8, padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
+        <div style={{ fontSize: 11, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
           {t('personal log')} ({logs.length})
         </div>
         {logBlock}
