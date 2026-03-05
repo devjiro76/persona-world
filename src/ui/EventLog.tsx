@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { LogEntry } from '../types'
 import { COLORS } from '../constants'
+import { t, tEmotion } from '../data/i18n'
 
 const ACLS: Record<string, string> = {
   affection: 'p', comfort: 'p', praise: 'p', gift: 'p', encourage: 'p', excite: 'p',
@@ -48,10 +49,10 @@ export function MobileEventToast({ logs }: { logs: LogEntry[] }) {
           >
             <span style={{ fontSize: 12 }}>{e.emoji}</span>
             <span style={{ fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : COLORS.blue }}>
-              {e.from === 'user-1' ? 'You' : e.from.slice(0, 6)}
+              {e.from === 'user-1' ? t('You') : e.from.slice(0, 6)}
             </span>
-            <span style={{ color: cls, fontWeight: 600 }}>{e.action}</span>
-            <span style={{ color: COLORS.dim }}>{e.emotion}</span>
+            <span style={{ color: cls, fontWeight: 600 }}>{t(e.action)}</span>
+            <span style={{ color: COLORS.dim }}>{tEmotion(e.emotion)}</span>
           </div>
         )
       })}
@@ -86,7 +87,7 @@ export function MobileEventOverlay({ logs, onClose }: { logs: LogEntry[]; onClos
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.text }}>
-            Global Log <span style={{ color: COLORS.dim }}>({logs.length})</span>
+            {t('Global Log')} <span style={{ color: COLORS.dim }}>({logs.length})</span>
           </span>
           <button
             onClick={onClose}
@@ -96,7 +97,7 @@ export function MobileEventOverlay({ logs, onClose }: { logs: LogEntry[]; onClos
           </button>
         </div>
         {logs.length === 0 ? (
-          <div style={{ color: COLORS.muted, fontSize: 10 }}>no interactions yet</div>
+          <div style={{ color: COLORS.muted, fontSize: 10 }}>{t('no interactions yet')}</div>
         ) : (
           logs.slice(0, 50).map((e, i) => {
             const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
@@ -105,10 +106,10 @@ export function MobileEventOverlay({ logs, onClose }: { logs: LogEntry[]; onClos
                 <span style={{ color: COLORS.muted, fontSize: 9, minWidth: 48 }}>{e.time}</span>
                 <span style={{ fontSize: 12, minWidth: 16 }}>{e.emoji}</span>
                 <span style={{ fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : COLORS.blue, minWidth: 40 }}>
-                  {e.from === 'user-1' ? 'You' : e.from.slice(0, 6)}
+                  {e.from === 'user-1' ? t('You') : e.from.slice(0, 6)}
                 </span>
-                <span style={{ fontWeight: 600, color: cls, minWidth: 55 }}>{e.action}</span>
-                <span style={{ color: COLORS.dim, flex: 1 }}>{e.emotion}</span>
+                <span style={{ fontWeight: 600, color: cls, minWidth: 55 }}>{t(e.action)}</span>
+                <span style={{ color: COLORS.dim, flex: 1 }}>{tEmotion(e.emotion)}</span>
               </div>
             )
           })
@@ -135,12 +136,12 @@ export function EventLog({ logs }: Props) {
         }}
       >
         <span style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
-          Global Log <span style={{ color: COLORS.dim }}>({logs.length})</span>
+          {t('Global Log')} <span style={{ color: COLORS.dim }}>({logs.length})</span>
         </span>
         <button
           style={{ fontSize: 9, color: COLORS.dim, cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
         >
-          {expanded ? '\u25BC collapse' : '\u25B2 expand'}
+          {expanded ? `\u25BC ${t('collapse')}` : `\u25B2 ${t('expand')}`}
         </button>
       </div>
       <div
@@ -153,7 +154,7 @@ export function EventLog({ logs }: Props) {
         }}
       >
         {logs.length === 0 ? (
-          <div style={{ color: COLORS.muted, fontSize: 10, padding: '4px 0' }}>perform an action to see logs here</div>
+          <div style={{ color: COLORS.muted, fontSize: 10, padding: '4px 0' }}>{t('perform an action to see logs here')}</div>
         ) : (
           logs.slice(0, 50).map((e, i) => {
             const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
@@ -164,13 +165,13 @@ export function EventLog({ logs }: Props) {
               >
                 <span style={{ color: COLORS.muted, fontSize: 9, minWidth: 55 }}>{e.time}</span>
                 <span style={{ minWidth: 50, fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : e.auto ? COLORS.blue : COLORS.text }}>
-                  {e.from === 'user-1' ? 'You' : e.from.slice(0, 8)}{e.auto ? ' \u{1F916}' : ''}
+                  {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}{e.auto ? ' \u{1F916}' : ''}
                 </span>
                 <span style={{ color: COLORS.muted, fontSize: 8 }}>\u2192</span>
                 <span style={{ minWidth: 50, color: COLORS.text }}>{e.target.slice(0, 8)}</span>
-                <span style={{ minWidth: 65, fontWeight: 600, color: cls }}>{e.action}</span>
+                <span style={{ minWidth: 65, fontWeight: 600, color: cls }}>{t(e.action)}</span>
                 <span style={{ fontSize: 12, minWidth: 16 }}>{e.emoji}</span>
-                <span style={{ color: COLORS.dim, flex: 1, fontSize: 10 }}>{e.emotion}</span>
+                <span style={{ color: COLORS.dim, flex: 1, fontSize: 10 }}>{tEmotion(e.emotion)}</span>
               </div>
             )
           })

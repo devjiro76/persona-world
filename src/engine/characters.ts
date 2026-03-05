@@ -1,6 +1,6 @@
 import { CharacterState, Direction, TileType } from '../types'
 import type { Character, Persona } from '../types'
-import { findPath, getWalkableTiles, isWalkable } from './pathfinding'
+import { findPath, isWalkable } from './pathfinding'
 import {
   TILE_SIZE,
   WALK_SPEED_PX_PER_SEC,
@@ -56,6 +56,7 @@ export function updateCharacter(
   tileMap: TileType[][],
   blockedTiles: Set<string>,
   characters: Map<string, Character>,
+  walkableTiles: Array<{ col: number; row: number }>,
 ): void {
   // Handle bubble timer
   if (ch.bubbleTimer > 0) ch.bubbleTimer -= dt
@@ -71,21 +72,21 @@ export function updateCharacter(
       ch.wanderTimer -= dt
       if (ch.wanderTimer <= 0) {
         // Pick target tile — biased toward homeZone if set
-        const walkable = getWalkableTiles(tileMap, blockedTiles)
-        if (walkable.length > 0) {
+        if (walkableTiles.length > 0) {
           let target: { col: number; row: number }
           if (ch.homeZone && Math.random() < 0.7) {
             // 70% chance to wander within home zone
-            const inZone = walkable.filter(t => {
+            const r2 = ch.homeZone.radius * ch.homeZone.radius
+            const inZone = walkableTiles.filter(t => {
               const dc = t.col - ch.homeZone!.col
               const dr = t.row - ch.homeZone!.row
-              return Math.sqrt(dc * dc + dr * dr) <= ch.homeZone!.radius
+              return dc * dc + dr * dr <= r2
             })
             target = inZone.length > 0
               ? inZone[Math.floor(Math.random() * inZone.length)]
-              : walkable[Math.floor(Math.random() * walkable.length)]
+              : walkableTiles[Math.floor(Math.random() * walkableTiles.length)]
           } else {
-            target = walkable[Math.floor(Math.random() * walkable.length)]
+            target = walkableTiles[Math.floor(Math.random() * walkableTiles.length)]
           }
           const path = findPath(ch.tileCol, ch.tileRow, target.col, target.row, tileMap, blockedTiles)
           if (path.length > 0) {
@@ -165,7 +166,7 @@ export function updateCharacter(
       ch.reactTimer -= dt
       if (ch.reactTimer <= 0) {
         // Scatter away from interaction point to prevent clumping
-        scatterToHome(ch, tileMap, blockedTiles)
+        scatterToHome(ch, tileMap, blockedTiles, walkableTiles)
         // scatterToHome sets WALK if path found; otherwise fall back to IDLE
         if ((ch.state as CharacterState) !== CharacterState.WALK) {
           ch.state = CharacterState.IDLE
@@ -258,13 +259,14 @@ export function scatterToHome(
   ch: Character,
   tileMap: TileType[][],
   blockedTiles: Set<string>,
+  walkableTiles: Array<{ col: number; row: number }>,
 ): void {
   if (!ch.homeZone) return
-  const walkable = getWalkableTiles(tileMap, blockedTiles)
-  const inZone = walkable.filter(t => {
+  const r2 = ch.homeZone.radius * ch.homeZone.radius
+  const inZone = walkableTiles.filter(t => {
     const dc = t.col - ch.homeZone!.col
     const dr = t.row - ch.homeZone!.row
-    return Math.sqrt(dc * dc + dr * dr) <= ch.homeZone!.radius
+    return dc * dc + dr * dr <= r2
   })
   if (inZone.length === 0) return
 

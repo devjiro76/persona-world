@@ -55,10 +55,11 @@ export function findPath(
   parent.set(startKey, null)
 
   const queue: Array<{ col: number; row: number }> = [{ col: startCol, row: startRow }]
+  let head = 0
   let found = false
 
-  while (queue.length > 0) {
-    const cur = queue.shift()!
+  while (head < queue.length) {
+    const cur = queue[head++]
     if (cur.col === endCol && cur.row === endRow) {
       found = true
       break

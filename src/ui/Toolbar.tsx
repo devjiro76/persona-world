@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { COLORS } from '../constants'
+import { t } from '../data/i18n'
 
 interface Props {
   autoRunning: boolean
@@ -76,7 +77,7 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
             fontWeight: autoRunning ? 600 : 400,
           }}
         >
-          {autoRunning ? '\u23F8' : '\u25B6'}{mobile ? '' : (autoRunning ? ' Auto' : ' Auto')}
+          {autoRunning ? '\u23F8' : '\u25B6'}{mobile ? '' : ` ${t('Auto')}`}
         </button>
 
         {mobile ? (
@@ -88,7 +89,7 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <label style={{ fontSize: 9, color: COLORS.muted }}>pace</label>
+            <label style={{ fontSize: 9, color: COLORS.muted }}>{t('pace')}</label>
             <input
               type="range"
               min={1}
@@ -112,7 +113,7 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderLeft: `1px solid ${COLORS.border}`, paddingLeft: 16 }}>
-          <label style={{ fontSize: 9, color: COLORS.muted }}>zoom</label>
+          <label style={{ fontSize: 9, color: COLORS.muted }}>{t('zoom')}</label>
           <input
             type="range"
             min={1}
@@ -129,7 +130,7 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
       <div style={{ display: 'flex', gap: mobile ? 8 : 12, marginLeft: 'auto', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
           <span style={{ fontSize: mobile ? 12 : 14, fontWeight: 700, color: COLORS.accent }}>{totalActions}</span>
-          <span style={{ fontSize: 9, color: COLORS.muted }}>acts</span>
+          <span style={{ fontSize: 9, color: COLORS.muted }}>{t('acts')}</span>
         </div>
 
         <button
@@ -185,13 +186,10 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
               <span style={{ color: COLORS.accent }}>Persona</span> World
             </div>
             <p style={{ fontSize: 11, color: COLORS.dim, lineHeight: 1.6, margin: '0 0 10px' }}>
-              Each character has a unique personality and emotional state.
-              They interact autonomously — building relationships,
-              reacting emotionally, and evolving over time.
+              {t('info.p1')}
             </p>
             <p style={{ fontSize: 11, color: COLORS.dim, lineHeight: 1.6, margin: '0 0 12px' }}>
-              Click a character to see their inner world.
-              Try performing actions and watch how they feel.
+              {t('info.p2')}
             </p>
             <div style={{ fontSize: 10, color: COLORS.muted, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
               powered by{' '}

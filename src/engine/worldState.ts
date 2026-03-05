@@ -11,6 +11,7 @@ export interface WorldState {
   furniture: FurnitureInstance[]
   tileMap: TileType[][]
   blockedTiles: Set<string>
+  walkableTiles: Array<{ col: number; row: number }>
   selectedId: string | null
 }
 
@@ -25,12 +26,15 @@ const ZONES = [
 ]
 
 export function createWorldState(): WorldState {
+  const tileMap = DEFAULT_MAP
+  const blockedTiles = getBlockedTiles()
   return {
     characters: new Map(),
     personas: [],
     furniture: [...FURNITURE],
-    tileMap: DEFAULT_MAP,
-    blockedTiles: getBlockedTiles(),
+    tileMap,
+    blockedTiles,
+    walkableTiles: getWalkableTiles(tileMap, blockedTiles),
     selectedId: null,
   }
 }
@@ -38,17 +42,18 @@ export function createWorldState(): WorldState {
 export function initCharacters(world: WorldState, personas: Persona[]): void {
   world.personas = personas
   world.characters.clear()
-  const walkable = getWalkableTiles(world.tileMap, world.blockedTiles)
+  const walkable = world.walkableTiles
 
   personas.forEach((p, i) => {
     // Assign each persona to a zone (round-robin)
     const zone = ZONES[i % ZONES.length]
 
     // Find walkable tiles within the zone
+    const r2 = zone.radius * zone.radius
     const zoneTiles = walkable.filter(t => {
       const dc = t.col - zone.col
       const dr = t.row - zone.row
-      return Math.sqrt(dc * dc + dr * dr) <= zone.radius
+      return dc * dc + dr * dr <= r2
     })
 
     // Pick starting tile within zone (or fallback to distributed)

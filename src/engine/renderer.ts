@@ -1,4 +1,5 @@
 import { TILE_SIZE, BUBBLE_VERTICAL_OFFSET_PX, COLORS } from '../constants'
+import { t } from '../data/i18n'
 import { TileType, CharacterState, Direction } from '../types'
 import type { Character, FurnitureInstance } from '../types'
 import { assets } from '../sprites/assetLoader'
@@ -8,7 +9,7 @@ import { getEmotionTint } from '../sprites/emotionFx'
 const FRAME_W = 16
 const FRAME_H = 16
 
-// Direction → sprite sheet column
+// Direction -> sprite sheet column
 // SpriteSheet layout: col0=DOWN, col1=UP, col2=LEFT, col3=RIGHT
 const DIR_TO_COL: Record<Direction, number> = {
   [Direction.DOWN]: 0,
@@ -17,7 +18,7 @@ const DIR_TO_COL: Record<Direction, number> = {
   [Direction.LEFT]: 2,
 }
 
-// Tile type → tileset source coordinates (16×16 center fill tiles from autotile groups)
+// Tile type -> tileset source coordinates (16x16 center fill tiles from autotile groups)
 const TILE_COORDS: Partial<Record<TileType, { tileset: string; sx: number; sy: number }>> = {
   [TileType.GRASS]: { tileset: 'TilesetFloor', sx: 16, sy: 192 },             // bright green
   [TileType.STONE_PATH]: { tileset: 'TilesetFloor', sx: 208, sy: 240 },       // brown earth
@@ -39,7 +40,7 @@ const ZONE_LABELS = [
   { text: 'Residential', col: 26, row: 26 },
 ]
 
-// Bubble type → visual style
+// Bubble type -> visual style
 const BUBBLE_STYLES: Record<string, { bg: string; border: string; textColor: string }> = {
   think:  { bg: 'rgba(40,40,80,0.85)',  border: 'rgba(100,100,255,0.3)', textColor: '#aac' },
   action: { bg: 'rgba(20,20,40,0.88)',  border: 'rgba(255,200,50,0.3)',  textColor: '#fff' },
@@ -53,41 +54,64 @@ tintCanvas.height = FRAME_H
 const tintCtx = tintCanvas.getContext('2d')!
 tintCtx.imageSmoothingEnabled = false
 
-// Render floor tiles
-function renderTileGrid(
-  ctx: CanvasRenderingContext2D,
-  tileMap: TileType[][],
-  offsetX: number, offsetY: number,
-  zoom: number,
-): void {
-  const s = TILE_SIZE * zoom
-  for (let r = 0; r < tileMap.length; r++) {
-    for (let c = 0; c < tileMap[r].length; c++) {
-      const tile = tileMap[r][c]
+// ── Tile grid offscreen cache ──
+// Renders all tiles once at native 1:1 resolution. Blitted scaled per frame.
+let _tileCache: HTMLCanvasElement | null = null
+let _tileCacheRef: TileType[][] | null = null
+
+function ensureTileCache(tileMap: TileType[][]): HTMLCanvasElement {
+  if (_tileCache && _tileCacheRef === tileMap) return _tileCache
+
+  const rows = tileMap.length
+  const cols = rows > 0 ? tileMap[0].length : 0
+  const c = document.createElement('canvas')
+  c.width = cols * TILE_SIZE
+  c.height = rows * TILE_SIZE
+  const cctx = c.getContext('2d')!
+  cctx.imageSmoothingEnabled = false
+
+  for (let r = 0; r < rows; r++) {
+    for (let cc = 0; cc < cols; cc++) {
+      const tile = tileMap[r][cc]
       const coord = TILE_COORDS[tile]
       if (coord) {
         const img = assets.tiles[coord.tileset]
         if (img) {
-          ctx.drawImage(img, coord.sx, coord.sy, 16, 16, offsetX + c * s, offsetY + r * s, s, s)
+          cctx.drawImage(img, coord.sx, coord.sy, 16, 16, cc * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE)
           continue
         }
       }
       // Fallback for tiles without asset mapping
       if (tile === TileType.VOID) {
-        ctx.fillStyle = '#1a3a5c'
-        ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s)
+        cctx.fillStyle = '#1a3a5c'
+        cctx.fillRect(cc * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE)
       } else if (tile === TileType.WALL) {
-        ctx.fillStyle = '#3a3a4e'
-        ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s)
+        cctx.fillStyle = '#3a3a4e'
+        cctx.fillRect(cc * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE)
       } else if (tile === TileType.SAND) {
-        ctx.fillStyle = '#c4a96a'
-        ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s)
+        cctx.fillStyle = '#c4a96a'
+        cctx.fillRect(cc * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE)
       } else if (tile === TileType.BRIDGE) {
-        ctx.fillStyle = '#8a6540'
-        ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s)
+        cctx.fillStyle = '#8a6540'
+        cctx.fillRect(cc * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE)
       }
     }
   }
+
+  _tileCache = c
+  _tileCacheRef = tileMap
+  return c
+}
+
+// ── Pre-sorted furniture cache ──
+let _sortedFurniture: FurnitureInstance[] | null = null
+let _furnitureRef: FurnitureInstance[] | null = null
+
+function getSortedFurniture(furniture: FurnitureInstance[]): FurnitureInstance[] {
+  if (_furnitureRef === furniture && _sortedFurniture) return _sortedFurniture
+  _sortedFurniture = [...furniture].sort((a, b) => a.zY - b.zY)
+  _furnitureRef = furniture
+  return _sortedFurniture
 }
 
 // Render zone labels as semi-transparent text on the tile layer
@@ -107,7 +131,7 @@ function renderZoneLabels(
   for (const label of ZONE_LABELS) {
     const x = offsetX + label.col * TILE_SIZE * zoom + (TILE_SIZE * zoom) / 2
     const y = offsetY + label.row * TILE_SIZE * zoom + (TILE_SIZE * zoom) / 2
-    ctx.fillText(label.text, x, y)
+    ctx.fillText(t(label.text), x, y)
   }
 
   ctx.restore()
@@ -144,13 +168,65 @@ function drawCharacterSprite(
   ctx.drawImage(tintCanvas, 0, 0, FRAME_W, FRAME_H, dx, dy, dw, dh)
 }
 
-// Z-sortable drawable
-interface ZDrawable {
-  zY: number
-  draw: (ctx: CanvasRenderingContext2D) => void
+// Draw a single character entity (shadow + sprite + indicators)
+function drawCharacterEntity(
+  ctx: CanvasRenderingContext2D,
+  ch: Character,
+  offsetX: number, offsetY: number,
+  zoom: number,
+  selectedId: string | null,
+  time: number,
+): void {
+  const sheet = assets.characters[ch.spriteIndex % assets.characters.length]
+  if (!sheet) return
+
+  const col = DIR_TO_COL[ch.dir]
+  const row = ch.state === CharacterState.WALK ? (ch.frame % 4) : 0
+  const dw = FRAME_W * zoom
+  const dh = FRAME_H * zoom
+  const drawX = Math.round(offsetX + ch.x * zoom - dw / 2)
+  const drawY = Math.round(offsetY + ch.y * zoom - dh)
+
+  // Shadow
+  if (assets.shadow.complete) {
+    const sw = 12 * zoom
+    const sh = 7 * zoom
+    ctx.globalAlpha = 0.3
+    ctx.drawImage(assets.shadow, 0, 0, 12, 7, drawX + (dw - sw) / 2, drawY + dh - sh / 2, sw, sh)
+    ctx.globalAlpha = 1
+  }
+
+  // Character sprite with optional emotion tint
+  const tint = ch.persona.state?.emotion?.vad ? getEmotionTint(ch.persona.state.emotion.vad) : null
+  drawCharacterSprite(ctx, sheet, col, row, drawX, drawY, zoom, tint)
+
+  // Frozen / busy indicator — pulsing circle
+  if (ch.frozen) {
+    const pulse = 0.5 + 0.5 * Math.sin(time * 6)
+    const radius = (FRAME_W * zoom) / 2 + 2 * zoom
+    const cx = drawX + dw / 2
+    const cy = drawY + dh / 2
+    ctx.save()
+    ctx.strokeStyle = `rgba(255, 200, 50, ${0.3 + 0.4 * pulse})`
+    ctx.lineWidth = Math.max(1, zoom * 0.5)
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
+  }
+
+  // Selection highlight
+  if (ch.id === selectedId) {
+    ctx.save()
+    ctx.strokeStyle = COLORS.accent
+    ctx.lineWidth = 1
+    ctx.setLineDash([2, 2])
+    ctx.strokeRect(drawX - 1, drawY - 1, dw + 2, dh + 2)
+    ctx.restore()
+  }
 }
 
-// Render scene with Z-ordering
+// Render scene with Z-ordering via merge of pre-sorted furniture + characters
 function renderScene(
   ctx: CanvasRenderingContext2D,
   furniture: FurnitureInstance[],
@@ -160,82 +236,30 @@ function renderScene(
   selectedId: string | null,
   time: number,
 ): void {
-  const drawables: ZDrawable[] = []
+  const sorted = getSortedFurniture(furniture)
 
-  // Furniture
-  for (const f of furniture) {
-    const img = assets.tiles[f.sprite.tileset]
-    if (!img) continue
-    const fx = offsetX + f.x * zoom
-    const fy = offsetY + f.y * zoom
-    const dw = f.sprite.sw * zoom
-    const dh = f.sprite.sh * zoom
-    drawables.push({
-      zY: f.zY,
-      draw: (c) => c.drawImage(img, f.sprite.sx, f.sprite.sy, f.sprite.sw, f.sprite.sh, fx, fy, dw, dh),
-    })
+  // Sort characters by zY (typically only 12 items)
+  const charEntries = characters
+    .map(ch => ({ ch, zY: ch.y + TILE_SIZE / 2 + 1 }))
+    .sort((a, b) => a.zY - b.zY)
+
+  // Merge-draw furniture + characters in zY order
+  let fi = 0, ci = 0
+  while (fi < sorted.length || ci < charEntries.length) {
+    const fzY = fi < sorted.length ? sorted[fi].zY : Infinity
+    const czY = ci < charEntries.length ? charEntries[ci].zY : Infinity
+
+    if (fzY <= czY) {
+      const f = sorted[fi++]
+      const img = assets.tiles[f.sprite.tileset]
+      if (img) {
+        ctx.drawImage(img, f.sprite.sx, f.sprite.sy, f.sprite.sw, f.sprite.sh,
+          offsetX + f.x * zoom, offsetY + f.y * zoom, f.sprite.sw * zoom, f.sprite.sh * zoom)
+      }
+    } else {
+      drawCharacterEntity(ctx, charEntries[ci++].ch, offsetX, offsetY, zoom, selectedId, time)
+    }
   }
-
-  // Characters
-  for (const ch of characters) {
-    const sheet = assets.characters[ch.spriteIndex % assets.characters.length]
-    if (!sheet) continue
-
-    const col = DIR_TO_COL[ch.dir]
-    const row = ch.state === CharacterState.WALK ? (ch.frame % 4) : 0
-    const dw = FRAME_W * zoom
-    const dh = FRAME_H * zoom
-    const drawX = Math.round(offsetX + ch.x * zoom - dw / 2)
-    const drawY = Math.round(offsetY + ch.y * zoom - dh)
-    const charZY = ch.y + TILE_SIZE / 2 + 1
-
-    drawables.push({
-      zY: charZY,
-      draw: (c) => {
-        // Shadow
-        if (assets.shadow.complete) {
-          const sw = 12 * zoom
-          const sh = 7 * zoom
-          c.globalAlpha = 0.3
-          c.drawImage(assets.shadow, 0, 0, 12, 7, drawX + (dw - sw) / 2, drawY + dh - sh / 2, sw, sh)
-          c.globalAlpha = 1
-        }
-
-        // Character sprite with optional emotion tint
-        const tint = ch.persona.state?.emotion?.vad ? getEmotionTint(ch.persona.state.emotion.vad) : null
-        drawCharacterSprite(c, sheet, col, row, drawX, drawY, zoom, tint)
-
-        // Frozen / busy indicator — pulsing circle
-        if (ch.frozen) {
-          const pulse = 0.5 + 0.5 * Math.sin(time * 6)
-          const radius = (FRAME_W * zoom) / 2 + 2 * zoom
-          const cx = drawX + dw / 2
-          const cy = drawY + dh / 2
-          c.save()
-          c.strokeStyle = `rgba(255, 200, 50, ${0.3 + 0.4 * pulse})`
-          c.lineWidth = Math.max(1, zoom * 0.5)
-          c.beginPath()
-          c.arc(cx, cy, radius, 0, Math.PI * 2)
-          c.stroke()
-          c.restore()
-        }
-
-        // Selection highlight
-        if (ch.id === selectedId) {
-          c.save()
-          c.strokeStyle = COLORS.accent
-          c.lineWidth = 1
-          c.setLineDash([2, 2])
-          c.strokeRect(drawX - 1, drawY - 1, dw + 2, dh + 2)
-          c.restore()
-        }
-      },
-    })
-  }
-
-  // Sort and draw
-  drawables.sort((a, b) => a.zY - b.zY)
-  for (const d of drawables) d.draw(ctx)
 }
 
 // Render character HUD: name + emotion + VAD bars in a floating panel
@@ -431,7 +455,6 @@ export function renderFrame(
   selectedId: string | null,
   time = 0,
 ): { offsetX: number; offsetY: number } {
-  ctx.imageSmoothingEnabled = false
   ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
   const cols = tileMap.length > 0 ? tileMap[0].length : 0
@@ -441,7 +464,10 @@ export function renderFrame(
   const offsetX = Math.floor((canvasWidth - mapW) / 2) + Math.round(panX)
   const offsetY = Math.floor((canvasHeight - mapH) / 2) + Math.round(panY)
 
-  renderTileGrid(ctx, tileMap, offsetX, offsetY, zoom)
+  // Blit cached tile grid (1 drawImage instead of 1,728)
+  const tileGridCache = ensureTileCache(tileMap)
+  ctx.drawImage(tileGridCache, 0, 0, tileGridCache.width, tileGridCache.height, offsetX, offsetY, mapW, mapH)
+
   renderZoneLabels(ctx, offsetX, offsetY, zoom)
   renderScene(ctx, furniture, characters, offsetX, offsetY, zoom, selectedId, time)
   renderCharacterHUD(ctx, characters, offsetX, offsetY, zoom)

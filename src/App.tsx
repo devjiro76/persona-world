@@ -12,6 +12,7 @@ import { trackFeeling } from './auto-tick/autoTick'
 import { emoEmoji } from './sprites/emotionFx'
 import { actOnPersona } from './api/client'
 import { ACTIONS_BY_NAME } from './data/actions'
+import { t } from './data/i18n'
 import { loadAssets } from './sprites/assetLoader'
 import { OfficeCanvas } from './ui/OfficeCanvas'
 import { SidePanel } from './ui/SidePanel'
@@ -53,10 +54,10 @@ function OnboardingOverlay({ onClose }: { onClose: () => void }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
           {[
-            { icon: '\u{1F447}', text: 'Click a character to select' },
-            { icon: '\u{1F3AF}', text: 'Use action buttons to interact and watch their emotional reaction' },
-            { icon: '\u{25B6}\u{FE0F}', text: 'Press Auto to let characters interact on their own' },
-            { icon: '\u{1F50D}', text: 'Scroll to zoom, drag to pan the map' },
+            { icon: '\u{1F447}', text: t('Click a character to select') },
+            { icon: '\u{1F3AF}', text: t('Use action buttons to interact and watch their emotional reaction') },
+            { icon: '\u{25B6}\u{FE0F}', text: t('Press Auto to let characters interact on their own') },
+            { icon: '\u{1F50D}', text: t('Scroll to zoom, drag to pan the map') },
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 18, lineHeight: '22px', flexShrink: 0 }}>{step.icon}</span>
@@ -80,7 +81,7 @@ function OnboardingOverlay({ onClose }: { onClose: () => void }) {
             fontFamily: 'inherit',
           }}
         >
-          Got it
+          {t('Got it')}
         </button>
 
         <div style={{ fontSize: 10, color: COLORS.muted, textAlign: 'center', marginTop: 12 }}>
@@ -142,7 +143,7 @@ export function App() {
       timeRef.current += dt
 
       for (const ch of world.characters.values()) {
-        updateCharacter(ch, dt, world.tileMap, world.blockedTiles, world.characters)
+        updateCharacter(ch, dt, world.tileMap, world.blockedTiles, world.characters, world.walkableTiles)
       }
 
       // Camera follow selected character — exponential decay smoothing

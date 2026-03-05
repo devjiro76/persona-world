@@ -3,6 +3,7 @@ import type { Persona, LogEntry, ActionDef } from '../types'
 import { emoEmoji } from '../sprites/emotionFx'
 import { getFeeling, getFeelingCount, affLabel } from '../auto-tick/autoTick'
 import { COLORS } from '../constants'
+import { t, tEmotion } from '../data/i18n'
 
 const ACTIONS: ActionDef[] = [
   { name: 'affection', cls: 'p', label: 'affection' },
@@ -84,8 +85,8 @@ function describePersonality(p: { O: number; C: number; E: number; A: number; N:
   const tags: string[] = []
   for (const [key, [lo, hi]] of Object.entries(TRAIT_LABELS)) {
     const v = p[key as keyof typeof p]
-    if (v >= 0.7) tags.push(hi)
-    else if (v <= 0.3) tags.push(lo)
+    if (v >= 0.7) tags.push(t(hi))
+    else if (v <= 0.3) tags.push(t(lo))
   }
   return tags
 }
@@ -97,7 +98,7 @@ function CharacterDirectory({ personas, onSelect, compact }: { personas: Persona
   return (
     <div style={{ padding: compact ? '8px 16px' : 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600, marginBottom: 4 }}>
-        characters ({personas.length})
+        {t('characters')} ({personas.length})
       </div>
       {personas.map((p) => {
         const name = p.display_name || p.config.identity.name
@@ -135,7 +136,7 @@ function CharacterDirectory({ personas, onSelect, compact }: { personas: Persona
               </div>
             </div>
             {emotion && (
-              <span style={{ fontSize: 10, color: valColor, fontWeight: 500, flexShrink: 0 }}>{emotion}</span>
+              <span style={{ fontSize: 10, color: valColor, fontWeight: 500, flexShrink: 0 }}>{tEmotion(emotion)}</span>
             )}
           </button>
         )
@@ -153,7 +154,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
     }
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.muted, fontSize: 12 }}>
-        click a character to inspect
+        {t('click a character to inspect')}
       </div>
     )
   }
@@ -168,23 +169,23 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
     <div style={{ background: COLORS.card, borderRadius: 8, padding: compact ? 10 : 12 }}>
       {!compact && (
         <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
-          emotional state
+          {t('emotional state')}
         </div>
       )}
       {s?.emotion ? (
         <>
           <div style={{ fontSize: compact ? 12 : 14, fontWeight: 700, textTransform: 'capitalize', color: vColor(s.emotion.vad.V), display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: compact ? 14 : 18 }}>{emoji}</span>
-            {s.emotion.discrete?.primary || '?'}
-            {s.emotion.discrete?.secondary && ` / ${s.emotion.discrete.secondary}`}
+            {s.emotion.discrete?.primary ? tEmotion(s.emotion.discrete.primary) : '?'}
+            {s.emotion.discrete?.secondary && ` / ${tEmotion(s.emotion.discrete.secondary)}`}
             <span style={{ fontSize: 10, color: COLORS.dim, fontWeight: 400 }}>
               ({((s.emotion.discrete?.intensity || 0) * 100).toFixed(0)}%)
             </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: compact ? 4 : 8 }}>
-            <VadBar label="pleasure" value={s.emotion.vad.V} />
-            <VadBar label="energy" value={s.emotion.vad.A} />
-            <VadBar label="control" value={s.emotion.vad.D} />
+            <VadBar label={t('pleasure')} value={s.emotion.vad.V} />
+            <VadBar label={t('energy')} value={s.emotion.vad.A} />
+            <VadBar label={t('control')} value={s.emotion.vad.D} />
           </div>
           {!compact && s.mood && (
             <div style={{ fontSize: 10, color: COLORS.dim, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -202,7 +203,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
           ) : null}
         </>
       ) : (
-        <div style={{ color: COLORS.muted, fontSize: 11 }}>no state yet</div>
+        <div style={{ color: COLORS.muted, fontSize: 11 }}>{t('no state yet')}</div>
       )}
     </div>
   )
@@ -210,7 +211,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
   const actionsBlock = (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(60px, 1fr))',
+      gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(70px, 1fr))',
       gap: compact ? 4 : 3,
     }}>
       {ACTIONS.map((a) => {
@@ -222,12 +223,12 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
             onClick={() => onAction(pid, a.name)}
             disabled={busy}
             style={{
-              padding: compact ? '8px 12px' : '3px 5px',
+              padding: compact ? '8px 12px' : '4px 6px',
               border: `1px solid ${COLORS.border}`,
               borderRadius: 5,
               background: 'transparent',
               color: busy ? COLORS.muted : COLORS.dim,
-              fontSize: compact ? 11 : 8,
+              fontSize: compact ? 12 : 10,
               cursor: busy ? 'default' : 'pointer',
               fontFamily: 'inherit',
               opacity: busy ? 0.3 : 1,
@@ -243,7 +244,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
               e.currentTarget.style.color = COLORS.dim
             }}
           >
-            {a.label}
+            {t(a.label)}
           </button>
         )
       })}
@@ -261,7 +262,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
         return (
           <div key={eid} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', background: '#ffffff04', borderRadius: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 600, minWidth: 60, color: isUser ? COLORS.accent : undefined }}>
-              {isUser ? 'You' : eid.slice(0, 8)}
+              {isUser ? t('You') : eid.slice(0, 8)}
             </span>
             <div style={{ flex: 1, height: 6, background: '#ffffff08', borderRadius: 3, position: 'relative', overflow: 'hidden' }}>
               <div
@@ -278,7 +279,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
               />
             </div>
             <span style={{ fontSize: 14, minWidth: 20, textAlign: 'center' }}>{a.emoji}</span>
-            <span style={{ fontSize: 9, fontWeight: 600, minWidth: 48, textAlign: 'right', color: a.color }}>{a.text}</span>
+            <span style={{ fontSize: 9, fontWeight: 600, minWidth: 48, textAlign: 'right', color: a.color }}>{t(a.text)}</span>
             <span style={{ fontSize: 9, color: COLORS.muted, minWidth: 20, textAlign: 'right' }}>
               {cnt > 0 ? `${cnt}x` : ''}
             </span>
@@ -291,7 +292,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
   const logBlock = (
     <div style={{ overflowY: 'auto', maxHeight: compact ? 160 : 240 }}>
       {logs.length === 0 ? (
-        <div style={{ color: COLORS.muted, fontSize: 10 }}>no interactions yet</div>
+        <div style={{ color: COLORS.muted, fontSize: 10 }}>{t('no interactions yet')}</div>
       ) : (
         logs.map((e, i) => {
           const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
@@ -299,11 +300,11 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
             <div key={i} style={{ display: 'flex', gap: 6, padding: '3px 0', fontSize: 10, borderBottom: '1px solid #ffffff04' }}>
               <span style={{ color: COLORS.muted, fontSize: 9, minWidth: 55, fontVariantNumeric: 'tabular-nums' }}>{e.time}</span>
               <span style={{ minWidth: 50, fontWeight: 600, color: e.auto ? COLORS.blue : COLORS.blue }}>
-                {e.from === 'user-1' ? 'You' : e.from.slice(0, 8)}
+                {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}
               </span>
-              <span style={{ minWidth: 60, fontWeight: 600, color: cls }}>{e.action}</span>
+              <span style={{ minWidth: 60, fontWeight: 600, color: cls }}>{t(e.action)}</span>
               <span style={{ color: COLORS.dim, flex: 1 }}>
-                {e.emoji} {e.emotion}
+                {e.emoji} {tEmotion(e.emotion)}
               </span>
             </div>
           )
@@ -315,9 +316,9 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
   // --- Compact layout (mobile): header + emotion summary + tab navigation ---
   if (compact) {
     const tabs: { key: CompactTab; label: string }[] = [
-      { key: 'actions', label: 'Actions' },
-      { key: 'feelings', label: 'Feelings' },
-      { key: 'log', label: `Log (${logs.length})` },
+      { key: 'actions', label: t('actions') },
+      { key: 'feelings', label: t('feelings toward others') },
+      { key: 'log', label: `${t('personal log')} (${logs.length})` },
     ]
 
     return (
@@ -345,24 +346,24 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
 
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${COLORS.border}` }}>
-          {tabs.map((t) => (
+          {tabs.map((tt) => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={tt.key}
+              onClick={() => setTab(tt.key)}
               style={{
                 flex: 1,
                 padding: '6px 0',
                 background: 'none',
                 border: 'none',
-                borderBottom: tab === t.key ? `2px solid ${COLORS.accent}` : '2px solid transparent',
-                color: tab === t.key ? COLORS.accent : COLORS.muted,
+                borderBottom: tab === tt.key ? `2px solid ${COLORS.accent}` : '2px solid transparent',
+                color: tab === tt.key ? COLORS.accent : COLORS.muted,
                 fontSize: 10,
-                fontWeight: tab === t.key ? 600 : 400,
+                fontWeight: tab === tt.key ? 600 : 400,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
               }}
             >
-              {t.label}
+              {tt.label}
             </button>
           ))}
         </div>
@@ -409,7 +410,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
       {/* Actions */}
       <div style={{ background: COLORS.card, borderRadius: 8, padding: 12 }}>
         <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
-          actions
+          {t('actions')}
         </div>
         {actionsBlock}
       </div>
@@ -417,7 +418,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
       {/* Feelings */}
       <div style={{ background: COLORS.card, borderRadius: 8, padding: 12 }}>
         <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
-          feelings toward others
+          {t('feelings toward others')}
         </div>
         {feelingsBlock}
       </div>
@@ -425,7 +426,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
       {/* Log */}
       <div style={{ background: COLORS.card, borderRadius: 8, padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ fontSize: 9, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>
-          personal log ({logs.length})
+          {t('personal log')} ({logs.length})
         </div>
         {logBlock}
       </div>
