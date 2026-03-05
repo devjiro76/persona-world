@@ -4,6 +4,8 @@ A pixel art world simulation where AI characters with unique personalities inter
 
 Powered by the [molroo](https://molroo.io) emotion engine.
 
+**[Live Demo](https://persona-world.pages.dev/)**
+
 ![screenshot](docs/screenshot.png)
 
 ## What is this?
