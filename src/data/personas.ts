@@ -1,5 +1,5 @@
 /**
- * 12 personas for the viz-pixel demo village.
+ * 12 personas for the persona-world demo village.
  *
  * Each has a unique HEXACO personality profile and character role.
  * Personality traits: O=Openness C=Conscientiousness E=Extraversion

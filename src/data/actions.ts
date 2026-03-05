@@ -1,5 +1,5 @@
 /**
- * 16 actions for the viz-pixel demo village.
+ * 16 actions for the persona-world demo village.
  *
  * Each action has an AppraisalVector (Scherer CPM, 2001) with 9 dimensions,
  * tuned for the Sprott oscillator emotion pipeline in @molroo-io/core.
