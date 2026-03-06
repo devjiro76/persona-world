@@ -5,7 +5,7 @@
  * tuned for the Sprott oscillator emotion pipeline in @molroo-io/core.
  *
  * Field ranges:
- *   goalRelevance:      [0, 1]   — how important is this event to my goals
+ *   goalRelevance:      [-1, 1]  — positive relevance (+) or anti-relevance/envy (-)
  *   goalCongruence:     [-1, 1]  — does this help (+) or hinder (-) my goals
  *   expectedness:        [0, 1]   — was this anticipated
  *   controllability:     [0, 1]   — can I control or cope with this
