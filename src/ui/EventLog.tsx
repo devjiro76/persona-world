@@ -171,26 +171,36 @@ export function EventLog({ logs, onSelect }: Props) {
               {logs.slice(0, 50).map((e, i) => {
                 const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
                 return (
-                  <tr key={i} style={{ borderBottom: '1px solid #ffffff04' }}>
-                    <td style={{ padding: '3px 6px', color: COLORS.muted, fontSize: 10, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{e.time}</td>
-                    <td
-                      onClick={() => e.from !== 'user-1' && onSelect?.(e.from)}
-                      style={{ padding: '3px 6px', fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : e.auto ? COLORS.blue : COLORS.text, whiteSpace: 'nowrap', cursor: e.from !== 'user-1' ? 'pointer' : 'default' }}
-                    >
-                      {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}{e.auto ? ' \u{1F916}' : ''}
-                    </td>
-                    <td style={{ padding: '3px 2px', color: COLORS.muted, fontSize: 10 }}>{'\u2192'}</td>
-                    <td
-                      onClick={() => onSelect?.(e.target)}
-                      style={{ padding: '3px 6px', color: COLORS.text, whiteSpace: 'nowrap', cursor: 'pointer' }}
-                    >
-                      {e.target.slice(0, 8)}
-                    </td>
-                    <td style={{ padding: '3px 6px', fontWeight: 600, color: cls, whiteSpace: 'nowrap' }}>{t(e.action)}</td>
-                    <td style={{ padding: '3px 6px', color: COLORS.dim, whiteSpace: 'nowrap' }}>
-                      {e.emoji} {tEmotion(e.emotion)}
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={i} style={{ borderBottom: e.narration ? 'none' : '1px solid #ffffff04' }}>
+                      <td style={{ padding: '3px 6px', color: COLORS.muted, fontSize: 10, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{e.time}</td>
+                      <td
+                        onClick={() => e.from !== 'user-1' && onSelect?.(e.from)}
+                        style={{ padding: '3px 6px', fontWeight: 600, color: e.from === 'user-1' ? COLORS.accent : e.auto ? COLORS.blue : COLORS.text, whiteSpace: 'nowrap', cursor: e.from !== 'user-1' ? 'pointer' : 'default' }}
+                      >
+                        {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}{e.auto ? ' \u{1F916}' : ''}
+                      </td>
+                      <td style={{ padding: '3px 2px', color: COLORS.muted, fontSize: 10 }}>{'\u2192'}</td>
+                      <td
+                        onClick={() => onSelect?.(e.target)}
+                        style={{ padding: '3px 6px', color: COLORS.text, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      >
+                        {e.target.slice(0, 8)}
+                      </td>
+                      <td style={{ padding: '3px 6px', fontWeight: 600, color: cls, whiteSpace: 'nowrap' }}>{t(e.action)}</td>
+                      <td style={{ padding: '3px 6px', color: COLORS.dim, whiteSpace: 'nowrap' }}>
+                        {e.emoji} {tEmotion(e.emotion)}
+                      </td>
+                    </tr>
+                    {e.narration && (
+                      <tr key={`${i}-n`} style={{ borderBottom: '1px solid #ffffff04' }}>
+                        <td colSpan={6} style={{ padding: '2px 6px 4px 60px', fontSize: 10, color: COLORS.dim, fontStyle: 'italic' }}>
+                          {e.narration}
+                          {e.dialogue && <span style={{ color: COLORS.text, fontStyle: 'normal', marginLeft: 8 }}>&ldquo;{e.dialogue}&rdquo;</span>}
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )
               })}
             </tbody>

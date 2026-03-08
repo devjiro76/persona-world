@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { COLORS } from '../constants'
 import { t } from '../data/i18n'
+import { getLLMKey, setLLMKey, isCustomKey } from '../api/llm'
 
 interface Props {
   autoRunning: boolean
@@ -10,6 +11,8 @@ interface Props {
   totalActions: number
   zoom: number
   onZoomChange: (zoom: number) => void
+  llmEnabled: boolean
+  onToggleLLM: () => void
   mobile?: boolean
 }
 
@@ -40,13 +43,16 @@ function MiniButton({ label, onClick, style }: { label: string; onClick: () => v
   )
 }
 
-export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, totalActions, zoom, onZoomChange, mobile }: Props) {
+export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, totalActions, zoom, onZoomChange, llmEnabled, onToggleLLM, mobile }: Props) {
   const [showInfo, setShowInfo] = useState(false)
+  const [showLLMSettings, setShowLLMSettings] = useState(false)
+  const [keyInput, setKeyInput] = useState('')
+  const [hasCustomKey, setHasCustomKey] = useState(isCustomKey)
 
   return (
     <div
       style={{
-        padding: mobile ? '6px 12px' : '10px 24px',
+        padding: mobile ? 'calc(6px + env(safe-area-inset-top, 0px)) 12px 6px' : '10px 24px',
         background: COLORS.surface,
         borderBottom: `1px solid ${COLORS.border}`,
         display: 'flex',
@@ -125,6 +131,144 @@ export function Toolbar({ autoRunning, autoSpeed, onToggleAuto, onSpeedChange, t
           <span style={{ fontSize: 9, color: COLORS.dim, minWidth: 20 }}>{Math.round(zoom)}x</span>
         </div>
       )}
+
+      {/* LLM toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderLeft: `1px solid ${COLORS.border}`, paddingLeft: mobile ? 8 : 16, position: 'relative' }}>
+        <button
+          onClick={onToggleLLM}
+          style={{
+            padding: mobile ? '3px 8px' : '4px 10px',
+            border: `1px solid ${llmEnabled ? COLORS.blue : COLORS.border}`,
+            borderRadius: 5,
+            background: llmEnabled ? COLORS.blue : 'transparent',
+            color: llmEnabled ? '#000' : COLORS.dim,
+            fontSize: mobile ? 10 : 11,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontWeight: llmEnabled ? 600 : 400,
+          }}
+        >
+          {t('AI')}
+        </button>
+        <button
+          onClick={() => setShowLLMSettings((v) => !v)}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 4,
+            border: 'none',
+            background: 'transparent',
+            color: COLORS.dim,
+            fontSize: 11,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            fontFamily: 'inherit',
+          }}
+        >
+          {'\u2699'}
+        </button>
+
+        {/* LLM settings popover */}
+        {showLLMSettings && (
+          <>
+            {mobile && (
+              <div
+                onClick={() => setShowLLMSettings(false)}
+                style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.3)' }}
+              />
+            )}
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: 8,
+                width: mobile ? 'calc(100vw - 24px)' : 240,
+                padding: '12px 16px',
+                background: COLORS.surface,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 8,
+                zIndex: 100,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 8, color: COLORS.text }}>
+                {t('API Key')} (OpenRouter)
+              </div>
+              <div style={{ fontSize: 9, color: hasCustomKey ? COLORS.pos : COLORS.muted, marginBottom: 8 }}>
+                {hasCustomKey ? t('using your key') : t('using default key')}
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <input
+                  type="password"
+                  placeholder={t('Enter OpenRouter API key')}
+                  value={keyInput}
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '5px 8px',
+                    background: COLORS.card,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 4,
+                    color: COLORS.text,
+                    fontSize: 10,
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (keyInput.trim()) {
+                      setLLMKey(keyInput.trim())
+                      setHasCustomKey(true)
+                      setKeyInput('')
+                      setShowLLMSettings(false)
+                    }
+                  }}
+                  style={{
+                    padding: '5px 10px',
+                    background: COLORS.accent,
+                    border: 'none',
+                    borderRadius: 4,
+                    color: '#fff',
+                    fontSize: 10,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontWeight: 600,
+                  }}
+                >
+                  {t('save')}
+                </button>
+              </div>
+              {hasCustomKey && (
+                <button
+                  onClick={() => {
+                    setLLMKey('')
+                    setHasCustomKey(false)
+                    setKeyInput('')
+                  }}
+                  style={{
+                    marginTop: 6,
+                    background: 'none',
+                    border: 'none',
+                    color: COLORS.muted,
+                    fontSize: 9,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    textDecoration: 'underline',
+                    padding: 0,
+                  }}
+                >
+                  {t('clear')}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Stats + Info */}
       <div style={{ display: 'flex', gap: mobile ? 8 : 12, marginLeft: 'auto', alignItems: 'center' }}>

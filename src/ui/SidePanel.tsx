@@ -297,15 +297,23 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
         logs.map((e, i) => {
           const cls = ACLS[e.action] === 'p' ? COLORS.pos : ACLS[e.action] === 'n' ? COLORS.neg : COLORS.warn
           return (
-            <div key={i} style={{ display: 'flex', gap: 6, padding: '3px 0', fontSize: 10, borderBottom: '1px solid #ffffff04' }}>
-              <span style={{ color: COLORS.muted, fontSize: 9, minWidth: 55, fontVariantNumeric: 'tabular-nums' }}>{e.time}</span>
-              <span style={{ minWidth: 50, fontWeight: 600, color: e.auto ? COLORS.blue : COLORS.blue }}>
-                {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}
-              </span>
-              <span style={{ minWidth: 60, fontWeight: 600, color: cls }}>{t(e.action)}</span>
-              <span style={{ color: COLORS.dim, flex: 1 }}>
-                {e.emoji} {tEmotion(e.emotion)}
-              </span>
+            <div key={i} style={{ padding: '3px 0', borderBottom: '1px solid #ffffff04' }}>
+              <div style={{ display: 'flex', gap: 6, fontSize: 10 }}>
+                <span style={{ color: COLORS.muted, fontSize: 9, minWidth: 55, fontVariantNumeric: 'tabular-nums' }}>{e.time}</span>
+                <span style={{ minWidth: 50, fontWeight: 600, color: e.auto ? COLORS.blue : COLORS.blue }}>
+                  {e.from === 'user-1' ? t('You') : e.from.slice(0, 8)}
+                </span>
+                <span style={{ minWidth: 60, fontWeight: 600, color: cls }}>{t(e.action)}</span>
+                <span style={{ color: COLORS.dim, flex: 1 }}>
+                  {e.emoji} {tEmotion(e.emotion)}
+                </span>
+              </div>
+              {e.narration && (
+                <div style={{ fontSize: 9, color: COLORS.dim, fontStyle: 'italic', marginTop: 2, paddingLeft: 55 }}>
+                  {e.narration}
+                  {e.dialogue && <span style={{ color: COLORS.text, fontStyle: 'normal', marginLeft: 6 }}>&ldquo;{e.dialogue}&rdquo;</span>}
+                </div>
+              )}
             </div>
           )
         })

@@ -48,6 +48,15 @@ const ko: Record<string, string> = {
   'collapse': '접기',
   'expand': '펼치기',
 
+  // LLM
+  'AI': 'AI',
+  'API Key': 'API 키',
+  'save': '저장',
+  'using default key': '기본 키 사용 중',
+  'using your key': '내 키 사용 중',
+  'Enter OpenRouter API key': 'OpenRouter API 키 입력',
+  'clear': '초기화',
+
   // Onboarding
   'Click a character to select': '캐릭터를 클릭해서 선택하세요',
   'Use action buttons to interact and watch their emotional reaction': '행동 버튼으로 상호작용하고 감정 반응을 관찰하세요',

@@ -98,17 +98,18 @@ export function BottomSheet({ children, onClose }: Props) {
         style={{
           display: 'flex',
           justifyContent: 'center',
-          padding: '8px 0 4px',
+          alignItems: 'center',
+          minHeight: 44,
           cursor: 'grab',
           flexShrink: 0,
           touchAction: 'none',
         }}
       >
-        <div style={{ width: 32, height: 4, borderRadius: 2, background: '#ffffff20' }} />
+        <div style={{ width: 36, height: 5, borderRadius: 3, background: '#ffffff30' }} />
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {children}
       </div>
     </div>

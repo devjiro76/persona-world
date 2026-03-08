@@ -20,6 +20,8 @@ import { Toolbar } from './ui/Toolbar'
 import { EventLog, MobileEventToast, MobileEventOverlay } from './ui/EventLog'
 import { BottomSheet } from './ui/BottomSheet'
 import { useMobile } from './hooks/useMobile'
+import { useLLM } from './hooks/useLLM'
+import { generateNarration } from './api/llm'
 
 function OnboardingOverlay({ onClose }: { onClose: () => void }) {
   return (
@@ -121,7 +123,11 @@ export function App() {
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [assetsReady, setAssetsReady] = useState(false)
   const [showMobileLog, setShowMobileLog] = useState(false)
+  const [showMobileSheet, setShowMobileSheet] = useState(true)
   const [, forceUpdate] = useState(0)
+  const { llmEnabled, toggleLLM } = useLLM()
+  const llmEnabledRef = useRef(false)
+  llmEnabledRef.current = llmEnabled
 
   // Load sprite assets on mount
   useEffect(() => {
@@ -317,6 +323,36 @@ export function App() {
         const emoji = emoEmoji(disc)
         const time = new Date().toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
+        // LLM narration (non-blocking: fire alongside bubble animation)
+        let narrationText: string | undefined
+        let dialogueText: string | undefined
+        if (llmEnabledRef.current) {
+          const actorP = actorId === 'user-1' ? null : personas.find((p) => p.persona_config_id === actorId)
+          const targetP = personas.find((p) => p.persona_config_id === targetId)
+          if (targetP) {
+            const llmResult = await generateNarration(
+              actorId === 'user-1' ? 'Player' : (actorP?.config.identity.name || actorId),
+              actorId === 'user-1' ? 'the player' : (actorP?.config.identity.role || ''),
+              targetP.config.identity.name,
+              targetP.config.identity.role || '',
+              actionName,
+              disc,
+            )
+            if (llmResult) {
+              narrationText = llmResult.narration
+              dialogueText = llmResult.dialogue
+            }
+          }
+        }
+
+        // React animation on target
+        if (targetCh) {
+          const bubbleMsg = dialogueText || `${tEmotion(disc)} <- ${actorName}`
+          triggerReact(targetCh, emoji, bubbleMsg)
+          targetCh.bubbleType = 'react'
+          if (dialogueText) targetCh.bubbleTimer = 4
+        }
+
         const logEntry: LogEntry = {
           time,
           from: actorId,
@@ -325,12 +361,8 @@ export function App() {
           emotion: disc,
           emoji,
           auto: isAuto,
-        }
-
-        // React animation on target
-        if (targetCh) {
-          triggerReact(targetCh, emoji, `${tEmotion(disc)} <- ${actorName}`)
-          targetCh.bubbleType = 'react'
+          narration: narrationText,
+          dialogue: dialogueText,
         }
 
         setGlobalLogs((prev) => [logEntry, ...prev].slice(0, 200))
@@ -369,6 +401,7 @@ export function App() {
 
   const handleSelectFromDirectory = useCallback((id: string) => {
     setSelectedId(id)
+    setShowMobileSheet(true)
     // Camera will follow via the game loop
   }, [])
 
@@ -385,6 +418,8 @@ export function App() {
         totalActions={totalActions}
         zoom={zoom}
         onZoomChange={setZoom}
+        llmEnabled={llmEnabled}
+        onToggleLLM={toggleLLM}
         mobile={mobile}
       />
 
@@ -397,7 +432,7 @@ export function App() {
             zoom={zoom}
             onZoom={handleZoom}
             onZoomFloat={handleZoomFloat}
-            onSelect={setSelectedId}
+            onSelect={(id) => { setSelectedId(id); if (id) setShowMobileSheet(true) }}
             offsetRef={offsetRef}
             panRef={panRef}
             disabled={!autoTick.running}
@@ -457,62 +492,95 @@ export function App() {
           {/* Mobile event toast */}
           {mobile && <MobileEventToast logs={globalLogs} />}
 
-          {/* Mobile log icon button */}
-          {mobile && globalLogs.length > 0 && (
-            <button
-              onClick={() => setShowMobileLog(true)}
-              style={{
-                position: 'absolute',
-                bottom: selectedPersona ? 'calc(40dvh + 8px)' : 8,
-                right: 8,
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.surface,
-                color: COLORS.dim,
-                fontSize: 14,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 45,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-              }}
-            >
-              {'\u{1F4DC}'}
-            </button>
+          {/* Mobile FAB buttons */}
+          {mobile && (
+            <div style={{
+              position: 'absolute',
+              bottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
+              right: 8,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              zIndex: 45,
+            }}>
+              {/* Character directory FAB — shown when sheet is closed */}
+              {!showMobileSheet && (
+                <button
+                  onClick={() => setShowMobileSheet(true)}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.surface,
+                    color: COLORS.accent,
+                    fontSize: 18,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                  }}
+                >
+                  {'\u{1F464}'}
+                </button>
+              )}
+              {/* Log FAB */}
+              {globalLogs.length > 0 && (
+                <button
+                  onClick={() => setShowMobileLog(true)}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.surface,
+                    color: COLORS.dim,
+                    fontSize: 16,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                  }}
+                >
+                  {'\u{1F4DC}'}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
         {/* Side panel — desktop: right sidebar, mobile: bottom sheet */}
         {mobile ? (
-          selectedPersona ? (
-            <BottomSheet onClose={() => setSelectedId(null)}>
-              <SidePanel
-                persona={selectedPersona}
-                personas={personas}
-                logs={personalLogs[selectedId || ''] || []}
-                onClose={() => setSelectedId(null)}
-                onAction={(targetId, actionName) => executeAction(targetId, actionName)}
-                busySet={busySet}
-                compact
-              />
-            </BottomSheet>
-          ) : (
-            <BottomSheet onClose={() => {}}>
-              <SidePanel
-                persona={null}
-                personas={personas}
-                logs={[]}
-                onClose={() => {}}
-                onAction={() => {}}
-                onSelectPersona={handleSelectFromDirectory}
-                busySet={busySet}
-                compact
-              />
-            </BottomSheet>
-          )
+          showMobileSheet ? (
+            selectedPersona ? (
+              <BottomSheet key="persona" onClose={() => { setSelectedId(null); setShowMobileSheet(false) }}>
+                <SidePanel
+                  persona={selectedPersona}
+                  personas={personas}
+                  logs={personalLogs[selectedId || ''] || []}
+                  onClose={() => { setSelectedId(null); setShowMobileSheet(false) }}
+                  onAction={(targetId, actionName) => executeAction(targetId, actionName)}
+                  busySet={busySet}
+                  compact
+                />
+              </BottomSheet>
+            ) : (
+              <BottomSheet key="directory" onClose={() => setShowMobileSheet(false)}>
+                <SidePanel
+                  persona={null}
+                  personas={personas}
+                  logs={[]}
+                  onClose={() => setShowMobileSheet(false)}
+                  onAction={() => {}}
+                  onSelectPersona={handleSelectFromDirectory}
+                  busySet={busySet}
+                  compact
+                />
+              </BottomSheet>
+            )
+          ) : null
         ) : (
           <div
             style={{

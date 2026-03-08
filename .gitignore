@@ -11,3 +11,5 @@ eval-report.md
 seed.sh
 .claude/
 .omc/
+.serena/
+.wrangler/

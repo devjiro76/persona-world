@@ -119,4 +119,6 @@ export interface LogEntry {
   emotion: string
   emoji: string
   auto: boolean
+  narration?: string
+  dialogue?: string
 }
