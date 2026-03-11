@@ -101,7 +101,7 @@ function CharacterDirectory({ personas, onSelect, compact }: { personas: Persona
         {t('characters')} ({personas.length})
       </div>
       {personas.map((p) => {
-        const name = p.display_name || p.config.identity.name
+        const name = p.config.identity.name || p.display_name
         const emotion = p.state?.emotion?.label
         const emoji = emotion ? emoEmoji(emotion) : '\u{1F610}'
         const tags = describePersonality(p.config.personality)
@@ -333,7 +333,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
       <div style={{ padding: '4px 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 700 }}>{persona.display_name || persona.config.identity.name}</span>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>{persona.config.identity.name || persona.display_name}</span>
           <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             {describePersonality(persona.config.personality).map((tag) => (
               <span key={tag} style={{ fontSize: 8, padding: '1px 5px', background: '#ffffff08', borderRadius: 3, color: COLORS.dim }}>
@@ -392,7 +392,7 @@ export function SidePanel({ persona, personas, logs, onClose, onAction, onSelect
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>{persona.display_name || persona.config.identity.name}</div>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>{persona.config.identity.name || persona.display_name}</div>
           {persona.config.identity.role && (
             <div style={{ color: COLORS.dim, fontSize: 11, marginTop: 2 }}>{persona.config.identity.role}</div>
           )}

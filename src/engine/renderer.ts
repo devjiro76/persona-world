@@ -275,7 +275,7 @@ function renderCharacterHUD(
 
     const vad = ch.persona.state?.emotion?.vad
     const emotionLabel = ch.persona.state?.emotion?.label
-    const name = ch.persona.display_name || ch.persona.config.identity.name
+    const name = ch.persona.config.identity.name || ch.persona.display_name || ''
     const emoji = emotionLabel ? emoEmoji(emotionLabel) : ''
 
     // Layout dimensions

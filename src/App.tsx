@@ -19,9 +19,12 @@ import { SidePanel } from './ui/SidePanel'
 import { Toolbar } from './ui/Toolbar'
 import { EventLog, MobileEventToast, MobileEventOverlay } from './ui/EventLog'
 import { BottomSheet } from './ui/BottomSheet'
+import { ChatOverlay } from './ui/ChatPanel'
 import { useMobile } from './hooks/useMobile'
 import { useLLM } from './hooks/useLLM'
-import { generateNarration } from './api/llm'
+import { useIdleSpeech } from './hooks/useIdleSpeech'
+import { generateNarration, generateActorLine, generateChatResponse } from './api/llm'
+import type { ChatMessage, RecentEvent } from './api/llm'
 
 function OnboardingOverlay({ onClose }: { onClose: () => void }) {
   return (
@@ -125,6 +128,8 @@ export function App() {
   const [showMobileLog, setShowMobileLog] = useState(false)
   const [showMobileSheet, setShowMobileSheet] = useState(true)
   const [, forceUpdate] = useState(0)
+  const [chatMessages, setChatMessages] = useState<Record<string, ChatMessage[]>>({})
+  const [chatLoading, setChatLoading] = useState(false)
   const { llmEnabled, toggleLLM } = useLLM()
   const llmEnabledRef = useRef(false)
   llmEnabledRef.current = llmEnabled
@@ -139,6 +144,9 @@ export function App() {
     worldRef.current = createWorldState()
     initCharacters(worldRef.current, personas)
   }
+
+  // Idle speech — characters mutter thoughts when idle
+  useIdleSpeech({ worldRef, personas, enabled: llmEnabled })
 
   // Game loop
   useGameLoop(canvasRef, {
@@ -241,6 +249,20 @@ export function App() {
           actor.bubbleTimer = 999
           actor.bubbleType = 'think'
 
+          // Fire LLM actor line generation in background while walking
+          let actorLinePromise: Promise<string | null> | null = null
+          if (llmEnabledRef.current) {
+            const actorP = personas.find((p) => p.persona_config_id === actorId)
+            if (actorP) {
+              actorLinePromise = generateActorLine(
+                actorP.config.identity.name,
+                actorP.config.identity.role || '',
+                targetName,
+                actionName,
+              )
+            }
+          }
+
           const PROXIMITY = 1.5 * 16
           const MAX_CHASE_MS = 10_000
           let bailed = false
@@ -282,8 +304,10 @@ export function App() {
           actor.frozen = true; frozeActor = true
           targetCh.frozen = true; frozeTarget = true
 
+          // Use LLM-generated actor line if available
+          const actorLine = actorLinePromise ? await actorLinePromise : null
           actor.bubbleEmoji = ACT_EMOJI[actionName] || '\u{2753}'
-          actor.bubbleText = `${t(actionName)} -> ${targetName}`
+          actor.bubbleText = actorLine || `${t(actionName)} -> ${targetName}`
           actor.bubbleTimer = 3
           actor.bubbleType = 'action'
         }
@@ -399,6 +423,70 @@ export function App() {
     setZoom(Math.max(1, Math.min(3, newZoom)))
   }, [])
 
+  const sendChatMessage = useCallback(
+    async (personaId: string, message: string) => {
+      const world = worldRef.current
+      if (!world) return
+
+      const persona = personas.find((p) => p.persona_config_id === personaId)
+      if (!persona) return
+
+      // Add user message
+      setChatMessages((prev) => ({
+        ...prev,
+        [personaId]: [...(prev[personaId] || []), { role: 'user' as const, text: message }],
+      }))
+
+      setChatLoading(true)
+
+      const emotionLabel = persona.state?.emotion?.label || 'neutral'
+      const moodLabel = persona.state?.mood?.label || 'neutral'
+      const history = chatMessages[personaId] || []
+
+      // Gather recent events involving this character
+      const logs = personalLogs[personaId] || []
+      const recentEvents: RecentEvent[] = logs.slice(0, 5).map((log) => {
+        const actorP = personas.find((p) => p.persona_config_id === log.from)
+        const targetP = personas.find((p) => p.persona_config_id === log.target)
+        return {
+          actorName: log.from === 'user-1' ? 'Player' : (actorP?.config.identity.name || log.from),
+          targetName: targetP?.config.identity.name || log.target,
+          action: log.action,
+          emotion: log.emotion,
+        }
+      })
+
+      const response = await generateChatResponse(
+        persona.config.identity.name,
+        persona.config.identity.role || '',
+        persona.config.personality,
+        emotionLabel,
+        moodLabel,
+        message,
+        history,
+        recentEvents,
+      )
+
+      setChatLoading(false)
+
+      const responseText = response || t('chat failed')
+      setChatMessages((prev) => ({
+        ...prev,
+        [personaId]: [...(prev[personaId] || []), { role: 'character' as const, text: responseText }],
+      }))
+
+      // Show response as speech bubble on canvas
+      const ch = world.characters.get(personaId)
+      if (ch && response) {
+        ch.bubbleEmoji = '\u{1F4AC}'
+        ch.bubbleText = response
+        ch.bubbleType = 'react'
+        ch.bubbleTimer = 4
+      }
+    },
+    [personas, chatMessages],
+  )
+
   const handleSelectFromDirectory = useCallback((id: string) => {
     setSelectedId(id)
     setShowMobileSheet(true)
@@ -487,6 +575,18 @@ export function App() {
                 {t('Click to start')}
               </div>
             </div>
+          )}
+
+          {/* Chat overlay */}
+          {selectedPersona && (
+            <ChatOverlay
+              persona={selectedPersona}
+              messages={chatMessages[selectedId || ''] || []}
+              onSend={(msg) => selectedId && sendChatMessage(selectedId, msg)}
+              loading={chatLoading}
+              llmEnabled={llmEnabled}
+              onClose={() => setSelectedId(null)}
+            />
           )}
 
           {/* Mobile event toast */}
@@ -596,7 +696,7 @@ export function App() {
               persona={selectedPersona}
               personas={personas}
               logs={personalLogs[selectedId || ''] || []}
-              onClose={() => setSelectedId(null)}
+              onClose={() => { setSelectedId(null) }}
               onAction={(targetId, actionName) => executeAction(targetId, actionName)}
               onSelectPersona={handleSelectFromDirectory}
               busySet={busySet}

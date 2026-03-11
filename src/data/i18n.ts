@@ -57,6 +57,14 @@ const ko: Record<string, string> = {
   'Enter OpenRouter API key': 'OpenRouter API 키 입력',
   'clear': '초기화',
 
+  // Chat
+  'chat': '대화',
+  'message': '메시지',
+  'send': '보내기',
+  'say something to': '말을 걸어보세요:',
+  'enable LLM to chat': 'AI를 켜면 캐릭터와 대화할 수 있어요',
+  'chat failed': '응답에 실패했어요',
+
   // Onboarding
   'Click a character to select': '캐릭터를 클릭해서 선택하세요',
   'Use action buttons to interact and watch their emotional reaction': '행동 버튼으로 상호작용하고 감정 반응을 관찰하세요',
@@ -149,6 +157,12 @@ const en: Record<string, string> = {
   'info.p1': 'Each character has a unique personality and emotional state. They interact autonomously \u2014 building relationships, reacting emotionally, and evolving over time.',
   'info.p2': 'Click a character to see their inner world. Try performing actions and watch how they feel.',
   'acts': 'acts',
+  'chat': 'Chat',
+  'message': 'Message',
+  'send': 'Send',
+  'say something to': 'Say something to',
+  'enable LLM to chat': 'Enable AI to chat with characters',
+  'chat failed': 'Failed to respond',
 }
 
 export function t(key: string): string {

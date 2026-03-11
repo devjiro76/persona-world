@@ -18,9 +18,24 @@ export function usePersonas() {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 3000)
 
+    const seedMap = new Map(PERSONAS.map((p) => [p.persona_config_id, p]))
+
     fetchPersonas(ctrl.signal)
       .then((result) => {
-        setPersonas(result.length > 0 ? result : MOCK_PERSONAS)
+        if (result.length > 0) {
+          // Restore original names from seed data (API may return mutated names)
+          for (const p of result) {
+            const seed = seedMap.get(p.persona_config_id)
+            if (seed) {
+              p.display_name = seed.display_name
+              p.config.identity.name = seed.config.identity.name
+              p.config.identity.role = seed.config.identity.role
+            }
+          }
+          setPersonas(result)
+        } else {
+          setPersonas(MOCK_PERSONAS)
+        }
       })
       .catch(() => {
         setPersonas(MOCK_PERSONAS)
